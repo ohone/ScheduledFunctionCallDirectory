@@ -1,7 +1,7 @@
-/// @title A title that should describe the contract/interface
-/// @author The name of the author
-/// @notice Explain to an end user what this does
-/// @dev Explain to a developer any extra details
+/// @title AuditableContract
+/// @author eoghan
+/// @notice A contract that emits an event when called, and can be configured
+/// to revert.
 contract AuditableContract {
 
     bool private reverts;
