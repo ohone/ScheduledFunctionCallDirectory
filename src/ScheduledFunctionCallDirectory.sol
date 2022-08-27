@@ -42,8 +42,8 @@ contract ScheduledFunctionCallDirectory {
 
         // act
         (bool functionSuccess,) = addr.call{value: value}(args);
-        if (!functionSuccess){
-            revert("nope");
+        if (functionSuccess != true){
+            revert("Function call reverted.");
         }
 
         // cleanup, gas $$

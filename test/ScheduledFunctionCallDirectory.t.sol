@@ -14,6 +14,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
     function setUp() public {
         directory = new ScheduledFunctionCallDirectory();
+        vm.warp(0);
     }
 
     function testSchedulingCall_IncrementsNumber() public {
@@ -21,7 +22,6 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 methodValue = 1;
 
         directory.ScheduleCall{value:reward + methodValue}(address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""));
-
         assertEq(directory.number(), 1);
     }
 
@@ -63,22 +63,27 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         directory.ScheduleCall{value:reward + methodValue}(address(0), timestamp, reward, methodValue, args);
     }
 
-    function testScheduledCall_CalledBeforeScheduledTime_Reverts() public {
+    function testScheduledCall_CalledBeforeScheduledTime_Reverts(uint256 scheduled) public {
+        vm.assume(scheduled > 0);
         uint256 reward = 1;
         uint256 methodValue = 1;
 
         directory.ScheduleCall{value:reward + methodValue}(
-            address(0), 
-            block.timestamp + 2, 
+            address(1), 
+            scheduled, 
             reward, 
             methodValue, 
             abi.encodeWithSignature("ScheduleCall()", ""));
 
+        uint256 functionId = directory.number();
+
+        vm.warp(scheduled - 1);
+
         vm.expectRevert("Call isn't scheduled yet.");
-        directory.PopCall(directory.number(), payable(address(0)));
+        directory.PopCall(functionId, payable(address(0)));
     }
 
-    function testScheduledCall_CalledAtScheduledTime_CallsMethodWithArgs() public {
+    function testScheduledCall_CalledAtScheduledTime_CallsMethodWithArgs(uint256 scheduled) public {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
@@ -88,17 +93,19 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         directory.ScheduleCall{value:reward + methodValue}(
             address(target), 
-            block.timestamp, 
+            scheduled, 
             reward, 
             methodValue, 
             abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2));
+
+        vm.warp(scheduled);
 
         vm.expectEmit(true, true, true, true);
         emit Called(arg1, arg2);
         directory.PopCall(directory.number(), payable(address(0)));
     }
 
-    function testScheduledCall_CalledAtScheduledTime_CallsMethodWithValue() public {
+    function testScheduledCall_CalledAtScheduledTime_CallsMethodWithValue(uint256 scheduled) public {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
@@ -106,26 +113,24 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg1 = 2;
         uint256 arg2 = 3;
 
-        uint256 schedule = 100;
-
         directory.ScheduleCall{value:reward + methodValue}(
             address(target), 
-            schedule, 
+            scheduled, 
             reward, 
             methodValue, 
             abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2));
 
-        vm.warp(schedule);
+        vm.warp(scheduled);
+
         directory.PopCall(directory.number(), payable(address(0)));
 
         assertEq(address(target).balance, methodValue);
     }
 
-    function testScheduledCall_CalledSuccessfully_RewardsCallerValue() public {
+    function testScheduledCall_CalledSuccessfully_RewardsCallerValue(uint256 scheduled) public {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
-        uint256 scheduled = 100;
         AuditableContract target = new AuditableContract(false);
 
         address recipient = address(0);
@@ -147,17 +152,18 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
-        uint256 scheduled = 100;
         AuditableContract target = new AuditableContract(true);
 
         directory.ScheduleCall{value:reward + methodValue}(
             address(target), 
-            scheduled, 
+            block.timestamp, 
             reward, 
             methodValue, 
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1,2));
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2));
 
-        vm.expectRevert();
-        directory.PopCall(directory.number(), payable(address(0)));
+        uint256 functionId = directory.number();
+
+        vm.expectRevert("Function call reverted.");
+        directory.PopCall(functionId, payable(address(0)));
     }
 }
