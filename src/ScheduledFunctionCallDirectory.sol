@@ -8,37 +8,51 @@ pragma solidity ^0.8.13;
 /// Calls will be made in the context of the eventual caller, so scheduling calls
 /// that functionally observe msg.sender is not advised.
 contract ScheduledFunctionCallDirectory {
-    uint256 public number;
-    mapping (uint256=>bytes) arguments;
-    mapping (uint256=>address) addresses;
-    mapping (uint256=>uint256) timestamps;
-    mapping (uint256=>uint256) rewards;
-    mapping (uint256=>uint256) values;
+    uint256 public index;
+
+    mapping (uint256=>ScheduledCall) directory;
+
+    struct ScheduledCall{
+        bytes arguments;
+        address target;
+        uint256 timestamp;
+        uint256 reward;
+        uint256 value;
+    }
 
     event CallScheduled(uint256 timestamp, uint256 reward, uint256 id, bytes args);
 
     function ScheduleCall(address target, uint256 timestamp, uint256 reward, uint256 value, bytes calldata args) external payable {
-        number = number + 1;
+        index = index + 1;
 
         if (msg.value != reward + value){
             revert("Sent ether doesnt equal required ether.");
         }
-        rewards[number] = reward;
-        values[number] = value;
 
-        arguments[number] = args;
-        timestamps[number] = timestamp;
-        addresses[number] = target;
+        ScheduledCall storage str = directory[index];
+        str.arguments = args;
+        str.target = target;
+        str.timestamp = timestamp;
+        str.reward = reward;
+        str.value = value;
 
-        emit CallScheduled(timestamp, reward, number, args);
+        emit CallScheduled(timestamp, reward, index, args);
     }
 
-    function PopCall(uint256 callToPop, address payable recipient) public IsItTime(timestamps[callToPop]) {
+    function PopCall(uint256 callToPop, address payable recipient) public {
+        
+        ScheduledCall storage str = directory[callToPop];
+        
+        require(block.timestamp >= str.timestamp, "Call isn't scheduled yet.");
+        
         // fetch call data
-        uint256 callerReward = rewards[callToPop];
-        uint256 value = values[callToPop];
-        bytes storage args = arguments[callToPop];
-        address addr = addresses[callToPop];
+        uint256 callerReward = str.reward;
+        uint256 value = str.value;
+        bytes memory args = str.arguments;
+        address addr = str.target;
+
+        // cleanup, gas $$, prevents replay
+        delete directory[index];
 
         // act
         (bool functionSuccess,) = addr.call{value: value}(args);
@@ -46,13 +60,6 @@ contract ScheduledFunctionCallDirectory {
             revert("Function call reverted.");
         }
 
-        // cleanup, gas $$
-        delete rewards[callToPop];
-        delete timestamps[callToPop];
-        delete addresses[callToPop];
-        delete arguments[callToPop];
-        delete values[callToPop];
-        
         // pay caller's recipient address
         (bool paymentSuccess,) = recipient.call{value: callerReward}("");
         if (!paymentSuccess){
@@ -61,11 +68,6 @@ contract ScheduledFunctionCallDirectory {
     }
 
     function CallRewards(uint256 call) public view returns (uint256) {
-        return rewards[call];
-    }
-
-    modifier IsItTime(uint256 time) {
-        require(block.timestamp >= time, "Call isn't scheduled yet.");
-        _;
+        return directory[call].reward;
     }
 }
