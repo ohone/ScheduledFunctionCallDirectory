@@ -10,22 +10,35 @@ pragma solidity ^0.8.13;
 contract ScheduledFunctionCallDirectory {
     uint256 public index;
 
-    mapping (uint256=>ScheduledCall) directory;
+    mapping(uint256 => ScheduledCall) directory;
 
-    struct ScheduledCall{
+    struct ScheduledCall {
         bytes arguments;
         address target;
         uint256 timestamp;
         uint256 reward;
         uint256 value;
+        uint256 expires;
     }
 
-    event CallScheduled(uint256 timestamp, uint256 reward, uint256 id, bytes args);
+    event CallScheduled(uint256 timestamp, uint256 expires, uint256 reward, uint256 id, bytes args);
 
-    function ScheduleCall(address target, uint256 timestamp, uint256 reward, uint256 value, bytes calldata args) external payable {
+    function ScheduleCall(
+        address target,
+        uint256 timestamp,
+        uint256 reward,
+        uint256 value,
+        bytes calldata args,
+        uint256 expires
+    )
+        external
+        payable
+    {
+        require(expires > block.timestamp, "call expiry timestamp cannot be in the past");
+
         index = index + 1;
 
-        if (msg.value != reward + value){
+        if (msg.value != reward + value) {
             revert("Sent ether doesnt equal required ether.");
         }
 
@@ -35,16 +48,17 @@ contract ScheduledFunctionCallDirectory {
         str.timestamp = timestamp;
         str.reward = reward;
         str.value = value;
+        str.expires = expires;
 
-        emit CallScheduled(timestamp, reward, index, args);
+        emit CallScheduled(timestamp, expires, reward, index, args);
     }
 
     function PopCall(uint256 callToPop, address payable recipient) public {
-        
         ScheduledCall storage str = directory[callToPop];
-        
+
         require(block.timestamp >= str.timestamp, "Call isn't scheduled yet.");
-        
+        require(block.timestamp <= str.expires, "Call has expired.");
+
         // fetch call data
         uint256 callerReward = str.reward;
         uint256 value = str.value;
@@ -56,13 +70,13 @@ contract ScheduledFunctionCallDirectory {
 
         // act
         (bool functionSuccess,) = addr.call{value: value}(args);
-        if (functionSuccess != true){
+        if (functionSuccess != true) {
             revert("Function call reverted.");
         }
 
         // pay caller's recipient address
         (bool paymentSuccess,) = recipient.call{value: callerReward}("");
-        if (!paymentSuccess){
+        if (!paymentSuccess) {
             revert("nope");
         }
     }

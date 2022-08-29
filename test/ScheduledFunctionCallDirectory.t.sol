@@ -6,11 +6,10 @@ import "../src/ScheduledFunctionCallDirectory.sol";
 import "./AuditableContract.sol";
 
 contract ScheduledFunctionCallDirectoryTest is Test {
-
     ScheduledFunctionCallDirectory private directory;
 
     event Called(uint256 argument1, uint256 argument2);
-    event CallScheduled(uint256 timestamp, uint256 reward, uint256 id, bytes args);
+    event CallScheduled(uint256 timestamp, uint256 expires, uint256 reward, uint256 id, bytes args);
 
     function setUp() public {
         directory = new ScheduledFunctionCallDirectory();
@@ -21,15 +20,19 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
-        directory.ScheduleCall{value:reward + methodValue}(address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""));
-        assertEq(directory.number(), 1);
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""), UINT256_MAX
+        );
+        assertEq(directory.index(), 1);
     }
 
     function testSchedulingCall_TransfersEther() public {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
-        directory.ScheduleCall{value:reward + methodValue}(address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""));
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""), UINT256_MAX
+        );
 
         assertEq(address(directory).balance, reward + methodValue);
     }
@@ -39,7 +42,9 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 methodValue = 1;
 
         vm.expectRevert("Sent ether doesnt equal required ether.");
-        directory.ScheduleCall{value:reward + methodValue + 1}(address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""));
+        directory.ScheduleCall{value: reward + methodValue + 1}(
+            address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""), UINT256_MAX
+        );
     }
 
     function testSchedulingCall_SendsLessEtherThanRequired_Reverts() public {
@@ -47,10 +52,14 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 methodValue = 1;
 
         vm.expectRevert("Sent ether doesnt equal required ether.");
-        directory.ScheduleCall{value:reward + methodValue - 1}(address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""));
+        directory.ScheduleCall{value: reward + methodValue - 1}(
+            address(0), 100, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""), UINT256_MAX
+        );
     }
 
-    function testSchedulingCall_EmitsEvent() public {
+    function testSchedulingCall_EmitsEvent(uint256 expires) public {
+        vm.assume(expires > 0);
+
         uint256 reward = 1;
         uint256 methodValue = 1;
 
@@ -59,8 +68,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         bytes memory args = abi.encodeWithSignature("ScheduleCall()", "");
 
         vm.expectEmit(true, true, true, true);
-        emit CallScheduled(timestamp, reward, directory.number() + 1, args);
-        directory.ScheduleCall{value:reward + methodValue}(address(0), timestamp, reward, methodValue, args);
+        emit CallScheduled(timestamp, expires, reward, directory.index() + 1, args);
+        directory.ScheduleCall{value: reward + methodValue}(address(0), timestamp, reward, methodValue, args, expires);
     }
 
     function testScheduledCall_CalledBeforeScheduledTime_Reverts(uint256 scheduled) public {
@@ -68,14 +77,11 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 reward = 1;
         uint256 methodValue = 1;
 
-        directory.ScheduleCall{value:reward + methodValue}(
-            address(1), 
-            scheduled, 
-            reward, 
-            methodValue, 
-            abi.encodeWithSignature("ScheduleCall()", ""));
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(1), scheduled, reward, methodValue, abi.encodeWithSignature("ScheduleCall()", ""), UINT256_MAX
+        );
 
-        uint256 functionId = directory.number();
+        uint256 functionId = directory.index();
 
         vm.warp(scheduled - 1);
 
@@ -91,18 +97,19 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg1 = 2;
         uint256 arg2 = 3;
 
-        directory.ScheduleCall{value:reward + methodValue}(
-            address(target), 
-            scheduled, 
-            reward, 
-            methodValue, 
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2));
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            scheduled,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2),
+            UINT256_MAX
+        );
 
         vm.warp(scheduled);
-
         vm.expectEmit(true, true, true, true);
         emit Called(arg1, arg2);
-        directory.PopCall(directory.number(), payable(address(0)));
+        directory.PopCall(directory.index(), payable(address(0)));
     }
 
     function testScheduledCall_CalledAtScheduledTime_CallsMethodWithValue(uint256 scheduled) public {
@@ -113,16 +120,18 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg1 = 2;
         uint256 arg2 = 3;
 
-        directory.ScheduleCall{value:reward + methodValue}(
-            address(target), 
-            scheduled, 
-            reward, 
-            methodValue, 
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2));
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            scheduled,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2),
+            UINT256_MAX
+        );
 
         vm.warp(scheduled);
 
-        directory.PopCall(directory.number(), payable(address(0)));
+        directory.PopCall(directory.index(), payable(address(0)));
 
         assertEq(address(target).balance, methodValue);
     }
@@ -135,15 +144,17 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         address recipient = address(0);
 
-        directory.ScheduleCall{value:reward + methodValue}(
-            address(target), 
-            scheduled, 
-            reward, 
-            methodValue, 
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1,2));
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            scheduled,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
+            UINT256_MAX
+        );
 
         vm.warp(scheduled);
-        directory.PopCall(directory.number(), payable(recipient));
+        directory.PopCall(directory.index(), payable(recipient));
 
         assertEq(recipient.balance, reward);
     }
@@ -154,16 +165,91 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(true);
 
-        directory.ScheduleCall{value:reward + methodValue}(
-            address(target), 
-            block.timestamp, 
-            reward, 
-            methodValue, 
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2));
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            block.timestamp,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
+            UINT256_MAX
+        );
 
-        uint256 functionId = directory.number();
+        uint256 functionId = directory.index();
 
         vm.expectRevert("Function call reverted.");
         directory.PopCall(functionId, payable(address(0)));
+    }
+
+    function testSchedulingCall_ExpiryInThePast_Reverts() public {
+        uint256 reward = 1;
+        uint256 methodValue = 1;
+
+        AuditableContract target = new AuditableContract(false);
+
+        uint256 currentTimestamp = 10000;
+        vm.warp(currentTimestamp);
+
+        vm.expectRevert("call expiry timestamp cannot be in the past");
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            1,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
+            currentTimestamp - 1
+        );
+    }
+
+    function testScheduledCall_CalledPassedExpiry_Reverts() public {
+        uint256 reward = 1;
+        uint256 methodValue = 1;
+
+        AuditableContract target = new AuditableContract(false);
+
+        uint256 currentTimestamp = 10000;
+        uint256 expiry = currentTimestamp + 1;
+        vm.warp(currentTimestamp);
+
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            1,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
+            expiry
+        );
+
+        vm.warp(expiry + 1);
+
+        // must extract call from in-line, otherwise expectRevert
+        // operates on .index() not .PopCall()
+        uint256 functionIndex = directory.index();
+
+        vm.expectRevert("Call has expired.");
+        directory.PopCall(functionIndex, payable(address(0)));
+    }
+
+    function testScheduledCall_CalledBeforeExpiry_Succeeds() public {
+        uint256 reward = 1;
+        uint256 methodValue = 1;
+
+        AuditableContract target = new AuditableContract(false);
+
+        address recipient = address(0);
+
+        uint256 currentTimestamp = 10000;
+        uint256 expiry = currentTimestamp + 1;
+        vm.warp(currentTimestamp);
+
+        directory.ScheduleCall{value: reward + methodValue}(
+            address(target),
+            1,
+            reward,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
+            expiry
+        );
+
+        directory.PopCall(directory.index(), payable(address(recipient)));
     }
 }

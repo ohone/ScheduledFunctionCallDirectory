@@ -6,16 +6,16 @@ pragma solidity ^0.8.13;
 /// @notice A contract that emits an event when called, and can be configured
 /// to revert.
 contract AuditableContract {
-
     bool private reverts;
+
     event Called(uint256 argument1, uint256 argument2);
 
-    constructor(bool shouldRevert){
+    constructor(bool shouldRevert) {
         reverts = shouldRevert;
     }
 
     function payableFunction(uint256 argument1, uint256 argument2) external payable {
-        if (reverts){
+        if (reverts) {
             revert("reverts!");
         }
         emit Called(argument1, argument2);
