@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "openzeppelin-contracts/interfaces/IERC20.sol";
+
 /// @title ScheduledFunctionCallDirectory
 /// @author eoghan
 /// @notice Allows registering of function calls to be executed beyond a time,
@@ -16,17 +18,22 @@ contract ScheduledFunctionCallDirectory {
         bytes arguments;
         address target;
         uint256 timestamp;
-        uint256 reward;
+        address rewardToken;
+        uint256 rewardAmount;
         uint256 value;
         uint256 expires;
     }
 
-    event CallScheduled(uint256 timestamp, uint256 expires, uint256 reward, uint256 id, bytes args);
+    event CallScheduled(
+        uint256 timestamp, uint256 expires, address rewardToken, uint256 rewardAmount, uint256 id, bytes args
+    );
 
     function ScheduleCall(
         address target,
         uint256 timestamp,
-        uint256 reward,
+        address rewardToken,
+        uint256 rewardAmount,
+        address rewardPayer,
         uint256 value,
         bytes calldata args,
         uint256 expires
@@ -38,34 +45,41 @@ contract ScheduledFunctionCallDirectory {
 
         index = index + 1;
 
-        if (msg.value != reward + value) {
+        if (msg.value != value) {
             revert("Sent ether doesnt equal required ether.");
+        }
+
+        bool success = IERC20(rewardToken).transferFrom(rewardPayer, address(this), rewardAmount);
+        if (!success) {
+            revert("Transfer of rewardToken failed.");
         }
 
         ScheduledCall storage str = directory[index];
         str.arguments = args;
         str.target = target;
         str.timestamp = timestamp;
-        str.reward = reward;
+        str.rewardToken = rewardToken;
+        str.rewardAmount = rewardAmount;
         str.value = value;
         str.expires = expires;
 
-        emit CallScheduled(timestamp, expires, reward, index, args);
+        emit CallScheduled(timestamp, expires, rewardToken, rewardAmount, index, args);
     }
 
-    function PopCall(uint256 callToPop, address payable recipient) public {
+    function PopCall(uint256 callToPop, address recipient) public {
         ScheduledCall storage str = directory[callToPop];
 
         require(block.timestamp >= str.timestamp, "Call isn't scheduled yet.");
         require(block.timestamp <= str.expires, "Call has expired.");
 
         // fetch call data
-        uint256 callerReward = str.reward;
+        uint256 callerRewardAmount = str.rewardAmount;
+        address callerRewardToken = str.rewardToken;
         uint256 value = str.value;
         bytes memory args = str.arguments;
         address addr = str.target;
 
-        // cleanup, gas $$, prevents replay
+        // cleanup, gas $$, prevents reentry on ERC20.transfer
         delete directory[index];
 
         // act
@@ -75,13 +89,13 @@ contract ScheduledFunctionCallDirectory {
         }
 
         // pay caller's recipient address
-        (bool paymentSuccess,) = recipient.call{value: callerReward}("");
-        if (!paymentSuccess) {
-            revert("nope");
+        bool transferSuccess = IERC20(callerRewardToken).transfer(recipient, callerRewardAmount);
+        if (!transferSuccess) {
+            revert("transfer of reward token to recipient failed");
         }
     }
 
-    function CallRewards(uint256 call) public view returns (uint256) {
-        return directory[call].reward;
+    function CallRewards(uint256 call) public view returns (address, uint256) {
+        return (directory[call].rewardToken, directory[call].rewardAmount);
     }
 }
