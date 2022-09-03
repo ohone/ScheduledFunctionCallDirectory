@@ -29,7 +29,7 @@ contract ScheduledFunctionCallDirectory {
         uint256 indexed timestamp, uint256 indexed expires, address rewardToken, uint256 rewardAmount, uint256 id, bytes args
     );
 
-    function ScheduleCall(
+    function scheduleCall(
         address target,
         uint256 timestamp,
         address rewardToken,
@@ -83,7 +83,7 @@ contract ScheduledFunctionCallDirectory {
         address addr = str.target;
 
         // cleanup, gas $$, prevents reentry on ERC20.transfer
-        delete directory[index];
+        delete directory[callToPop];
 
         // act
         (bool functionSuccess,) = addr.call{value: value}(args);
