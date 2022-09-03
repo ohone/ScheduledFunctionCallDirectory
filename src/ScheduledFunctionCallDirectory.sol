@@ -22,6 +22,7 @@ contract ScheduledFunctionCallDirectory {
         uint256 rewardAmount;
         uint256 value;
         uint256 expires;
+        address owner;
     }
 
     event CallScheduled(
@@ -36,7 +37,8 @@ contract ScheduledFunctionCallDirectory {
         address rewardPayer,
         uint256 value,
         bytes calldata args,
-        uint256 expires
+        uint256 expires,
+        address owner
     )
         external
         payable
@@ -62,6 +64,7 @@ contract ScheduledFunctionCallDirectory {
         str.rewardAmount = rewardAmount;
         str.value = value;
         str.expires = expires;
+        str.owner = owner;
 
         emit CallScheduled(timestamp, expires, rewardToken, rewardAmount, index, args);
     }
@@ -87,6 +90,22 @@ contract ScheduledFunctionCallDirectory {
         if (functionSuccess != true) {
             revert("Function call reverted.");
         }
+
+        // pay caller's recipient address
+        bool transferSuccess = IERC20(callerRewardToken).transfer(recipient, callerRewardAmount);
+        if (!transferSuccess) {
+            revert("transfer of reward token to recipient failed");
+        }
+    }
+
+    function RefundSchedule(uint256 callToPop, address recipient) public {
+        ScheduledCall storage str = directory[callToPop];
+        require(str.owner == msg.sender, "Caller does not own this scheduled call.");
+
+        uint256 callerRewardAmount = str.rewardAmount;
+        address callerRewardToken = str.rewardToken;
+
+        delete directory[callToPop];
 
         // pay caller's recipient address
         bool transferSuccess = IERC20(callerRewardToken).transfer(recipient, callerRewardAmount);
