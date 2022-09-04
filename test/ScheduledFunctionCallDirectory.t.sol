@@ -13,7 +13,12 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
     event Called(uint256 argument1, uint256 argument2);
     event CallScheduled(
-        uint256 indexed timestamp, uint256 indexed expires, address rewardToken, uint256 rewardAmount, uint256 id, bytes args
+        uint256 indexed timestamp,
+        uint256 indexed expires,
+        address rewardToken,
+        uint256 rewardAmount,
+        uint256 id,
+        bytes args
     );
 
     function setUp() public {
@@ -424,7 +429,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         vm.expectEmit(true, true, true, true);
         emit Called(arg1, arg2);
         directory.PopCall(callToPop, recipient);
-        // assert only one set of reward tokens transferred 
+        // assert only one set of reward tokens transferred
         assertEq(rewardToken.balanceOf(recipient), reward);
     }
 }

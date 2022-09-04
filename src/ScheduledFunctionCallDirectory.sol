@@ -26,7 +26,12 @@ contract ScheduledFunctionCallDirectory {
     }
 
     event CallScheduled(
-        uint256 indexed timestamp, uint256 indexed expires, address rewardToken, uint256 rewardAmount, uint256 id, bytes args
+        uint256 indexed timestamp,
+        uint256 indexed expires,
+        address rewardToken,
+        uint256 rewardAmount,
+        uint256 id,
+        bytes args
     );
 
     function scheduleCall(
