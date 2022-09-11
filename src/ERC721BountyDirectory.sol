@@ -1,57 +1,37 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.13;
+
 import "openzeppelin-contracts/interfaces/IERC721.sol";
 import "openzeppelin-contracts/interfaces/IERC721Receiver.sol";
-import "./IBountyDispenser.sol";
+import "./BountyDispenserBase.sol";
 
-contract ERC721BountyDirectory is IBountyDispenser, IERC721Receiver {
+contract ERC721BountyDirectory is BountyDispenserBase, IERC721Receiver {
     struct ERC721Bounty {
         address token;
         address from;
         uint256 id;
-        bool reserved;
+        address custodian;
     }
 
     mapping(bytes32 => ERC721Bounty) bounties;
-    address owner;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-
-    constructor(address _owner) {
-        owner = _owner;
-    }
-
-    /**
-     * @dev See {IBountyDispenser-supplyBounty}.
-     */
-    function supplyBounty(address token, address from, uint256 id, uint256 amount) external returns (bytes32) {
+    function supplyBounty(address token, address from, uint256 id, uint256 amount, address custodian)
+        external
+        returns (bytes32)
+    {
         IERC721(token).safeTransferFrom(from, address(this), id);
 
-        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, id, amount));
+        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, id, amount, custodian));
 
-        bounties[bountyHash] = ERC721Bounty(token, from, id, false);
+        bounties[bountyHash] = ERC721Bounty(token, from, id, custodian);
 
         return bountyHash;
     }
 
-    /**
-     * @dev See {IBountyDispenser-reserveBounty}.
-     */
-    function reserveBounty(bytes32 bountyHash, address onBehalfOf) external onlyOwner {
+    function dispenseBountyTo(bytes32 bountyHash, address recipient) external {
         ERC721Bounty storage bounty = bounties[bountyHash];
-        address bountyOwner = bounty.from;
-        require(bountyOwner == onBehalfOf, "user does not have rights to bounty.");
 
-        bounty.reserved = true;
-        return;
-    }
-
-    /**
-     * @dev See {IBountyDispenser-dispenseBountyTo}.
-     */
-    function dispenseBountyTo(bytes32 bountyHash, address recipient) external onlyOwner {
-        ERC721Bounty storage bounty = bounties[bountyHash];
+        require(msg.sender == bounty.custodian, "only custodian can dispense bounty");
 
         uint256 id = bounty.id;
         address token = bounty.token;
@@ -60,16 +40,11 @@ contract ERC721BountyDirectory is IBountyDispenser, IERC721Receiver {
         IERC721(token).safeTransferFrom(address(this), recipient, id);
     }
 
-    /**
-     * @dev See {IBountyDispenser-refundBounty}.
-     */
     function refundBounty(bytes32 bountyHash, address recipient) external {
         ERC721Bounty storage bounty = bounties[bountyHash];
 
         address bountyOwner = bounty.from;
         require(bountyOwner == msg.sender, "sender doesn't have rights to this bounty");
-        bool bountyReserved = bounty.reserved;
-        require(!bountyReserved, "bounty is reserved. Revoke reservation before attempting refund.");
 
         uint256 id = bounty.id;
         address token = bounty.token;
@@ -77,6 +52,16 @@ contract ERC721BountyDirectory is IBountyDispenser, IERC721Receiver {
         delete bounties[bountyHash];
 
         IERC721(token).safeTransferFrom(address(this), recipient, id);
+    }
+
+    function getBountyCustodian(bytes32 bountyHash) external view returns (address) {
+        ERC721Bounty storage bounty = bounties[bountyHash];
+
+        return bounty.custodian;
+    }
+
+    function bountyExists(bytes32 bountyHash) public view override returns (bool) {
+        return bounties[bountyHash].token != address(0);
     }
 
     /**
