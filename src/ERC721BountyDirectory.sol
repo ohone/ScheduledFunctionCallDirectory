@@ -15,13 +15,10 @@ contract ERC721BountyDirectory is BountyDispenserBase, IERC721Receiver {
 
     mapping(bytes32 => ERC721Bounty) bounties;
 
-    function supplyBounty(address token, address from, uint256 id, uint256 amount, address custodian)
-        external
-        returns (bytes32)
-    {
+    function supplyBounty(address token, address from, uint256 id, address custodian) external returns (bytes32) {
         IERC721(token).safeTransferFrom(from, address(this), id);
 
-        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, id, amount, custodian));
+        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, id, custodian));
 
         bounties[bountyHash] = ERC721Bounty(token, from, id, custodian);
 

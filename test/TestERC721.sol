@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "openzeppelin-contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 
-contract TestERC20 is ERC20 {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
+contract TestERC721 is ERC721 {
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
 
     address private callbackTarget;
     bytes private callbackArgs;
 
-    function mint(address reciever, uint256 amount) public {
-        _mint(reciever, amount);
+    function mint(address reciever, uint256 tokenId) public {
+        _mint(reciever, tokenId);
     }
 
     function registerPostTokenTransferCallback(address target, bytes memory args) public {

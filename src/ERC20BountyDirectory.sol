@@ -34,7 +34,7 @@ contract ERC20BountyDirectory is BountyDispenserBase {
 
         delete bounties[bountyHash];
 
-        IERC20(token).transferFrom(address(this), recipient, amount);
+        IERC20(token).transfer(recipient, amount);
     }
 
     function refundBounty(bytes32 bountyHash, address recipient) external {
@@ -48,7 +48,7 @@ contract ERC20BountyDirectory is BountyDispenserBase {
 
         delete bounties[bountyHash];
 
-        IERC20(token).transferFrom(address(this), recipient, amount);
+        IERC20(token).transfer(recipient, amount);
     }
 
     function getBountyCustodian(bytes32 bountyHash) external view returns (address) {

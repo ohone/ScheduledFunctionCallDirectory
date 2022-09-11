@@ -17,7 +17,13 @@ contract TestBountyDispenser is IBountyDispenser {
 
     function refundBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
 
-    function getBountyCustodian(bytes32) external recordCall(msg.sig, msg.data, msg.sender) returns (address) {}
+    function getBountyCustodian(bytes32 bountyHash)
+        external
+        recordCall(msg.sig, msg.data, msg.sender)
+        returns (address)
+    {
+        return custodians[bountyHash];
+    }
 
     function setBountyCustodianResponse(bytes32 bounty, address addr) external {
         custodians[bounty] = addr;

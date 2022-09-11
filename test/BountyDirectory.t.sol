@@ -24,9 +24,35 @@ contract BountyDirectoryTest is Test {
         directory.registerBounty(bytes32(0), address(bountyDispenser));
     }
 
-    function testDeregisterRegisteredBounty_FromCustodian_DeregistersBounty() public {}
+    function testDeregisterRegisteredBounty_FromCustodian_DeregistersBounty() public {
+        // create+register bounty
+        bytes32 bountyHash = bytes32(uint256(1));
+        vm.prank(address(bountyDispenser));
+        bytes32 addressedBountyHash = directory.registerBounty(bountyHash, address(bountyDispenser));
+        // set custodian response
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(this));
 
-    function testDeregisterRegisteredBounty_NotFromCustodian_Reverts() public {}
+        // act
+        directory.deregisterBounty(addressedBountyHash);
+
+        // assert
+        (address contractAddress, bytes32 returnedHash) = directory.getBountyInfo(addressedBountyHash);
+        assertEq(address(0), contractAddress);
+        assertEq(bytes32(uint256(0)), returnedHash);
+    }
+
+    function testDeregisterRegisteredBounty_NotFromCustodian_Reverts() public {
+        // create+register bounty
+        vm.prank(address(bountyDispenser));
+        bytes32 bountyHash = bytes32(uint256(1));
+        bytes32 addressedBountyHash = directory.registerBounty(bountyHash, address(bountyDispenser));
+        // set custodian response to NOT this address
+        bountyDispenser.setBountyCustodianResponse(addressedBountyHash, address(address(1)));
+
+        // act
+        vm.expectRevert("only bounty custodian can deregister bounty");
+        directory.deregisterBounty(addressedBountyHash);
+    }
 
     function testGetBountyInfo_ReturnsBountyInfo() public {
         // populate+register bounty
