@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "./BountyDispenserTestBase.sol";
-import "./TestERC20.sol";
+import "./utils/TestERC20.sol";
 import "../src/ERC20BountyDirectory.sol";
 
 contract ERC20BountyDirectoryTest is BountyDispenserTestBase {

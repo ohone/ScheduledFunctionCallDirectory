@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "./BountyDispenserTestBase.sol";
-import "./TestERC1155.sol";
-import "../src/ERC1155BountyDirectory.sol";
+import "./utils/TestERC1155.sol";
+import "src/ERC1155BountyDirectory.sol";
 import "openzeppelin-contracts/interfaces/IERC1155Receiver.sol";
-import "./TestERC1155Reciever.sol";
+import "./utils/TestERC1155Reciever.sol";
 
 contract ERC1155BountyDirectoryTest is BountyDispenserTestBase {
     ERC1155BountyDirectory dispenser;
