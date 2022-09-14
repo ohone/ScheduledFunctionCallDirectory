@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "src/IBountyDispenser.sol";
+import "src/IBountyDirectory.sol";
 
 contract TestBountyDispenser is IBountyDispenser {
     struct callRecord {
@@ -16,6 +17,14 @@ contract TestBountyDispenser is IBountyDispenser {
     function dispenseBountyTo(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
 
     function refundBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
+
+    function registerBounty(bytes32 bountyHash, address registrar)
+        external
+        recordCall(msg.sig, msg.data, msg.sender)
+        returns (bytes32)
+    {
+        return IBountyDirectory(registrar).registerBounty(bountyHash, address(this));
+    }
 
     function getBountyCustodian(bytes32 bountyHash)
         external
@@ -48,8 +57,6 @@ contract TestBountyDispenser is IBountyDispenser {
 
         return false;
     }
-
-    function registerBounty(bytes32 bountyHash, address registrar) external {}
 
     modifier recordCall(bytes4 signature, bytes calldata data, address sender) {
         callRecord[] storage functionCalls = calls[signature];

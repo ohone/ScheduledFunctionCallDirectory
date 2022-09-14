@@ -13,7 +13,11 @@ import "./BountyDirectory.sol";
 contract ScheduledFunctionCallDirectory {
     uint256 public index;
     mapping(uint256 => ScheduledCall) directory;
-    BountyDirectory bountyDirectory;
+    BountyDirectory public bountyDirectory;
+
+    constructor () {
+        bountyDirectory = new BountyDirectory();
+    }
 
     struct ScheduledCall {
         bytes arguments;
@@ -86,6 +90,7 @@ contract ScheduledFunctionCallDirectory {
         // fetch bounty
         (address bountyContract, bytes32 bountyHash) = bountyDirectory.getBountyInfo(bounty);
         IBountyDispenser dispenser = IBountyDispenser(bountyContract);
+
         // deregister bounty
         bountyDirectory.deregisterBounty(bounty);
 
