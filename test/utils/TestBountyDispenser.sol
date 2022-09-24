@@ -10,7 +10,7 @@ contract TestBountyDispenser is IBountyDispenser {
         address sender;
     }
 
-    struct callback{
+    struct callback {
         bytes call;
         address target;
     }
@@ -21,7 +21,7 @@ contract TestBountyDispenser is IBountyDispenser {
 
     function dispenseBountyTo(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
         callback storage thisCallback = callbacks[msg.sig];
-        if (thisCallback.target != address(0)){
+        if (thisCallback.target != address(0)) {
             thisCallback.target.call(thisCallback.call);
         }
     }

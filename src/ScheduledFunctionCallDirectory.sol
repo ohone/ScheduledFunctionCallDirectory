@@ -15,7 +15,7 @@ contract ScheduledFunctionCallDirectory {
     mapping(uint256 => ScheduledCall) directory;
     BountyDirectory public bountyDirectory;
 
-    constructor () {
+    constructor() {
         bountyDirectory = new BountyDirectory();
     }
 

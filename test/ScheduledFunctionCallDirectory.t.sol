@@ -117,8 +117,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(1);
 
         AuditableContract target = new AuditableContract(false);
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 functionId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -145,8 +145,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg2 = 3;
 
         AuditableContract target = new AuditableContract(false);
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -174,8 +174,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(false);
 
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -202,8 +202,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 reward = 1;
         address recipient = address(1);
 
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -298,8 +298,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(false);
 
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         vm.warp(currentTimestamp);
 
@@ -321,8 +321,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(false);
 
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 methodValue = 1;
         address recipient = address(1);
@@ -350,8 +350,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         // setup bounty mocks
         AuditableContract target = new AuditableContract(false);
-        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
-            = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) =
+            setupMockBounty(directory.bountyDirectory(), address(directory));
 
         // schedule call with bounty
         uint256 methodValue = 1;
@@ -371,7 +371,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(103);
 
         // setup a reentrant callback from bounty dispense
-        bytes memory reentryCallback = abi.encodeWithSignature("popCall(uint256,address)", scheduledFunctionId, recipient);
+        bytes memory reentryCallback =
+            abi.encodeWithSignature("popCall(uint256,address)", scheduledFunctionId, recipient);
         bytes4 dispenseBountySignature = bytes4(keccak256(bytes("dispenseBountyTo(bytes32,address)")));
         rewardToken.registerPostTokenTransferCallback(address(directory), reentryCallback);
         bountyDispenser.registerCallback(dispenseBountySignature, address(directory), reentryCallback);
@@ -383,7 +384,10 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         assertEq(1, records.length);
     }
 
-    function setupMockBounty(BountyDirectory bountyDirectory, address custodian) private returns (TestBountyDispenser bountyDispenser, bytes32 bountyhash, bytes32 addressedBountyHash){
+    function setupMockBounty(BountyDirectory bountyDirectory, address custodian)
+        private
+        returns (TestBountyDispenser bountyDispenser, bytes32 bountyhash, bytes32 addressedBountyHash)
+    {
         TestBountyDispenser bountyDispenser = new TestBountyDispenser();
         bytes32 bountyHash = bytes32(0x0);
         bountyDispenser.setBountyCustodianResponse(bountyHash, address(custodian));
