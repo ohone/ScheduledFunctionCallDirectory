@@ -375,12 +375,12 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
     function setupMockBounty(BountyDirectory bountyDirectory, address custodian)
         private
-        returns (TestBountyDispenser bountyDispenser, bytes32 bountyhash, bytes32 addressedBountyHash)
+        returns (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash)
     {
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser = new TestBountyDispenser();
+        bountyHash = bytes32(0x0);
         bountyDispenser.setBountyCustodianResponse(bountyHash, address(custodian));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
         return (bountyDispenser, bountyHash, addressedBountyHash);
     }
 }
