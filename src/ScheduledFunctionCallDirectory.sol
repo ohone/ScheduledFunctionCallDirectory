@@ -11,7 +11,7 @@ import "./BountyDirectory.sol";
 /// Calls will be made in the context of the eventual caller, so scheduling calls
 /// that functionally observe msg.sender is not advised.
 contract ScheduledFunctionCallDirectory {
-    uint256 public index;
+    uint256 private index;
     mapping(uint256 => ScheduledCall) directory;
     BountyDirectory public bountyDirectory;
 

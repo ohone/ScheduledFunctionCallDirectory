@@ -26,7 +26,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
     function testSchedulingCall_IncrementsNumber() public {
         uint256 methodValue = 1;
 
-        directory.scheduleCall{value: methodValue}(
+        uint256 firstCall = directory.scheduleCall{value: methodValue}(
             address(0),
             100,
             methodValue,
@@ -36,7 +36,17 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             bytes32(0x0)
         );
 
-        assertEq(directory.index(), 1);
+        uint256 secondCall = directory.scheduleCall{value: methodValue}(
+            address(0),
+            100,
+            methodValue,
+            abi.encodeWithSignature("ScheduleCall()", ""),
+            UINT256_MAX,
+            address(this),
+            bytes32(0x0)
+        );
+
+        assertEq(firstCall + 1, secondCall);
     }
 
     function testSchedulingCall_TransfersEther() public {
@@ -107,11 +117,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(1);
 
         AuditableContract target = new AuditableContract(false);
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 functionId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -138,13 +145,10 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg2 = 3;
 
         AuditableContract target = new AuditableContract(false);
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
 
-        directory.scheduleCall{value: methodValue}(
+        uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
@@ -157,7 +161,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         vm.warp(scheduled);
         vm.expectEmit(true, true, true, true);
         emit Called(arg1, arg2);
-        directory.PopCall(directory.index(), recipient);
+        directory.PopCall(scheduledCallId, recipient);
     }
 
     function testScheduledCall_CalledAtScheduledTime_CallsMethodWithValue(uint256 scheduled) public {
@@ -169,13 +173,11 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg2 = 3;
 
         AuditableContract target = new AuditableContract(false);
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
 
-        directory.scheduleCall{value: methodValue}(
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
+
+        uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
@@ -189,7 +191,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         vm.expectEmit(true, true, true, true);
 
         emit Called(arg1, arg2);
-        directory.PopCall(directory.index(), recipient);
+        directory.PopCall(scheduledCallId, recipient);
         assertEq(address(target).balance, methodValue);
     }
 
@@ -200,13 +202,10 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 reward = 1;
         address recipient = address(1);
 
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
 
-        directory.scheduleCall{value: methodValue}(
+        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
@@ -217,7 +216,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         );
 
         vm.warp(scheduled);
-        directory.PopCall(directory.index(), payable(recipient));
+        directory.PopCall(scheduledFunctionId, payable(recipient));
 
         // TODO: tighter assertion
         bountyDispenser.assertCalled(bytes4(keccak256(bytes("dispenseBountyTo(uint256,address)"))));
@@ -230,7 +229,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(1);
         uint256 scheduled = 1000;
 
-        directory.scheduleCall{value: methodValue}(
+        uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
@@ -240,11 +239,10 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             bytes32(0x0)
         );
 
-        uint256 functionId = directory.index();
         vm.warp(scheduled);
 
         vm.expectRevert("Function call reverted.");
-        directory.PopCall(functionId, recipient);
+        directory.PopCall(scheduledCallId, recipient);
     }
 
     function testSchedulingCall_ExpiryInThePast_Reverts() public {
@@ -276,7 +274,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 expiry = currentTimestamp + 1;
 
         vm.warp(currentTimestamp);
-        directory.scheduleCall{value: methodValue}(
+        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
             1,
             methodValue,
@@ -288,12 +286,8 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         vm.warp(expiry + 1);
 
-        // must extract call from in-line, otherwise expectRevert
-        // operates on .index() not .PopCall()
-        uint256 functionIndex = directory.index();
-
         vm.expectRevert("Call has expired.");
-        directory.PopCall(functionIndex, recipient);
+        directory.PopCall(scheduledFunctionId, recipient);
     }
 
     function testScheduledCall_CalledBeforeExpiry_Succeeds() public {
@@ -303,15 +297,13 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 expiry = currentTimestamp + 1;
 
         AuditableContract target = new AuditableContract(false);
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
 
         vm.warp(currentTimestamp);
 
-        directory.scheduleCall{value: methodValue}(
+        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
             1,
             methodValue,
@@ -321,23 +313,21 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             addressedBountyHash
         );
 
-        directory.PopCall(directory.index(), payable(address(recipient)));
+        directory.PopCall(scheduledFunctionId, payable(address(recipient)));
     }
 
     function testPopSameCallTwice_Reverts(uint256 scheduled) public {
         vm.assume(scheduled > 0);
 
         AuditableContract target = new AuditableContract(false);
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
 
         uint256 methodValue = 1;
         address recipient = address(1);
 
-        directory.scheduleCall{value: methodValue}(
+        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
@@ -348,12 +338,11 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         );
 
         vm.warp(scheduled);
-        uint256 callToPop = directory.index();
 
-        directory.PopCall(callToPop, address(this));
+        directory.PopCall(scheduledFunctionId, address(this));
 
         vm.expectRevert("Call has expired.");
-        directory.PopCall(callToPop, recipient);
+        directory.PopCall(scheduledFunctionId, recipient);
     }
 
     function testReentryIntoPopCall_BountyNotResent(uint256 scheduled) public {
@@ -361,15 +350,12 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         // setup bounty mocks
         AuditableContract target = new AuditableContract(false);
-        BountyDirectory bountyDirectory = directory.bountyDirectory();
-        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
-        bytes32 bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
-        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash) 
+            = setupMockBounty(directory.bountyDirectory(), address(directory));
 
         // schedule call with bounty
         uint256 methodValue = 1;
-        uint256 callIndex = directory.scheduleCall{value: methodValue}(
+        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
@@ -385,15 +371,23 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(103);
 
         // setup a reentrant callback from bounty dispense
-        bytes memory reentryCallback = abi.encodeWithSignature("popCall(uint256,address)", callIndex, recipient);
+        bytes memory reentryCallback = abi.encodeWithSignature("popCall(uint256,address)", scheduledFunctionId, recipient);
         bytes4 dispenseBountySignature = bytes4(keccak256(bytes("dispenseBountyTo(bytes32,address)")));
         rewardToken.registerPostTokenTransferCallback(address(directory), reentryCallback);
         bountyDispenser.registerCallback(dispenseBountySignature, address(directory), reentryCallback);
 
-        directory.PopCall(callIndex, recipient);
+        directory.PopCall(scheduledFunctionId, recipient);
 
         // assert bounty dispense only called once
         TestBountyDispenser.callRecord[] memory records = bountyDispenser.getCallRecords(dispenseBountySignature);
         assertEq(1, records.length);
+    }
+
+    function setupMockBounty(BountyDirectory bountyDirectory, address custodian) private returns (TestBountyDispenser bountyDispenser, bytes32 bountyhash, bytes32 addressedBountyHash){
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(custodian));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        return (bountyDispenser, bountyHash, addressedBountyHash);
     }
 }
