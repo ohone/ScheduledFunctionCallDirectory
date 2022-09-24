@@ -42,6 +42,7 @@ contract ScheduledFunctionCallDirectory {
     )
         external
         payable
+        returns (uint256)
     {
         // call isn't expired already
         require(expires > block.timestamp, "call expiry timestamp cannot be in the past");
@@ -64,6 +65,8 @@ contract ScheduledFunctionCallDirectory {
         str.bounty = bounty;
 
         emit CallScheduled(timestamp, expires, index, args, bounty);
+
+        return index;
     }
 
     function PopCall(uint256 callToPop, address recipient) public {

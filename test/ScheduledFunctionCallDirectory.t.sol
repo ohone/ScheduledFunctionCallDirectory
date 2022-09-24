@@ -106,17 +106,22 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 methodValue = 1;
         address recipient = address(1);
 
-        directory.scheduleCall{value: methodValue}(
-            address(0),
-            100,
+        AuditableContract target = new AuditableContract(false);
+        BountyDirectory bountyDirectory = directory.bountyDirectory();
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+
+        uint256 functionId = directory.scheduleCall{value: methodValue}(
+            address(target),
+            scheduled,
             methodValue,
             abi.encodeWithSignature("ScheduleCall()", ""),
-            scheduled,
+            UINT256_MAX,
             address(this),
-            bytes32(0x0)
+            addressedBountyHash
         );
-
-        uint256 functionId = directory.index();
 
         vm.warp(scheduled - 1);
 
@@ -125,12 +130,19 @@ contract ScheduledFunctionCallDirectoryTest is Test {
     }
 
     function testScheduledCall_CalledAtScheduledTime_CallsMethodWithArgs(uint256 scheduled) public {
-        AuditableContract target = new AuditableContract(false);
+        vm.assume(scheduled > 0);
 
         uint256 methodValue = 1;
         address recipient = address(1);
         uint256 arg1 = 2;
         uint256 arg2 = 3;
+
+        AuditableContract target = new AuditableContract(false);
+        BountyDirectory bountyDirectory = directory.bountyDirectory();
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
 
         directory.scheduleCall{value: methodValue}(
             address(target),
@@ -139,7 +151,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2),
             UINT256_MAX,
             address(this),
-            bytes32(0x0)
+            addressedBountyHash
         );
 
         vm.warp(scheduled);
@@ -149,13 +161,19 @@ contract ScheduledFunctionCallDirectoryTest is Test {
     }
 
     function testScheduledCall_CalledAtScheduledTime_CallsMethodWithValue(uint256 scheduled) public {
-        AuditableContract target = new AuditableContract(false);
+        vm.assume(scheduled > 0);
 
         uint256 methodValue = 1;
         address recipient = address(1);
-
         uint256 arg1 = 2;
         uint256 arg2 = 3;
+
+        AuditableContract target = new AuditableContract(false);
+        BountyDirectory bountyDirectory = directory.bountyDirectory();
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
 
         directory.scheduleCall{value: methodValue}(
             address(target),
@@ -164,13 +182,14 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2),
             UINT256_MAX,
             address(this),
-            bytes32(0x0)
+            addressedBountyHash
         );
 
         vm.warp(scheduled);
+        vm.expectEmit(true, true, true, true);
 
+        emit Called(arg1, arg2);
         directory.PopCall(directory.index(), recipient);
-
         assertEq(address(target).balance, methodValue);
     }
 
@@ -181,6 +200,12 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 reward = 1;
         address recipient = address(1);
 
+        BountyDirectory bountyDirectory = directory.bountyDirectory();
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+
         directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
@@ -188,13 +213,14 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
             UINT256_MAX,
             address(this),
-            bytes32(0x0)
+            addressedBountyHash
         );
 
         vm.warp(scheduled);
         directory.PopCall(directory.index(), payable(recipient));
 
-        assertEq(rewardToken.balanceOf(recipient), reward);
+        // TODO: tighter assertion
+        bountyDispenser.assertCalled(bytes4(keccak256(bytes("dispenseBountyTo(uint256,address)"))));
     }
 
     function testScheduledCall_CalledAtScheduledTime_CalledMethodReverts_Reverts() public {
@@ -271,12 +297,18 @@ contract ScheduledFunctionCallDirectoryTest is Test {
     }
 
     function testScheduledCall_CalledBeforeExpiry_Succeeds() public {
-        AuditableContract target = new AuditableContract(false);
-
         address recipient = address(1);
         uint256 methodValue = 1;
         uint256 currentTimestamp = 10000;
         uint256 expiry = currentTimestamp + 1;
+
+        AuditableContract target = new AuditableContract(false);
+        BountyDirectory bountyDirectory = directory.bountyDirectory();
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+
         vm.warp(currentTimestamp);
 
         directory.scheduleCall{value: methodValue}(
@@ -286,7 +318,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
             abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
             expiry,
             address(this),
-            bytes32(0x0)
+            addressedBountyHash
         );
 
         directory.PopCall(directory.index(), payable(address(recipient)));
@@ -319,48 +351,49 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 callToPop = directory.index();
 
         directory.PopCall(callToPop, address(this));
-        
+
         vm.expectRevert("Call has expired.");
         directory.PopCall(callToPop, recipient);
     }
 
     function testReentryIntoPopCall_BountyNotResent(uint256 scheduled) public {
+        vm.assume(scheduled > 0);
+
+        // setup bounty mocks
         AuditableContract target = new AuditableContract(false);
+        BountyDirectory bountyDirectory = directory.bountyDirectory();
+        TestBountyDispenser bountyDispenser = new TestBountyDispenser();
+        bytes32 bountyHash = bytes32(0x0);
+        bountyDispenser.setBountyCustodianResponse(bountyHash, address(directory));
+        bytes32 addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
 
-        uint256 reward = 1;
+        // schedule call with bounty
         uint256 methodValue = 1;
-        uint256 arg1 = 3;
-        uint256 arg2 = 2;
-        address recipient = address(1);
-
-        directory.scheduleCall{value: methodValue}(
+        uint256 callIndex = directory.scheduleCall{value: methodValue}(
             address(target),
             scheduled,
             methodValue,
             abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
             UINT256_MAX,
             address(this),
-            bytes32(0x0)
+            addressedBountyHash
         );
 
+        // warp to call scheduled
         vm.warp(scheduled);
-        uint256 callToPop = directory.index();
-        bytes memory functionSignature = abi.encodeWithSignature(
-            "scheduleCall(address,uint256,address,uint256,address,uint256,bytes,uint256, address)",
-            address(target),
-            scheduled,
-            address(rewardToken),
-            reward,
-            address(this),
-            methodValue,
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", arg1, arg2),
-            UINT256_MAX,
-            address(this)
-        );
-        rewardToken.registerPostTokenTransferCallback(address(directory), functionSignature);
 
-        directory.PopCall(callToPop, recipient);
-        // assert only one set of reward tokens transferred
-        assertEq(rewardToken.balanceOf(recipient), reward);
+        address recipient = address(103);
+
+        // setup a reentrant callback from bounty dispense
+        bytes memory reentryCallback = abi.encodeWithSignature("popCall(uint256,address)", callIndex, recipient);
+        bytes4 dispenseBountySignature = bytes4(keccak256(bytes("dispenseBountyTo(bytes32,address)")));
+        rewardToken.registerPostTokenTransferCallback(address(directory), reentryCallback);
+        bountyDispenser.registerCallback(dispenseBountySignature, address(directory), reentryCallback);
+
+        directory.PopCall(callIndex, recipient);
+
+        // assert bounty dispense only called once
+        TestBountyDispenser.callRecord[] memory records = bountyDispenser.getCallRecords(dispenseBountySignature);
+        assertEq(1, records.length);
     }
 }

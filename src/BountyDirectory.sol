@@ -37,6 +37,9 @@ contract BountyDirectory is IBountyDirectory {
 
     function getBountyInfo(bytes32 addressedBountyHash) external view returns (address, bytes32) {
         bountyInfo storage info = bountyContracts[addressedBountyHash];
+        if (info.bountyContract == address(0)){
+            revert("bounty does not exist");
+        }
         return (info.bountyContract, info.bountyHash);
     }
 }

@@ -10,11 +10,21 @@ contract TestBountyDispenser is IBountyDispenser {
         address sender;
     }
 
+    struct callback{
+        bytes call;
+        address target;
+    }
+
     mapping(bytes4 => callRecord[]) calls;
-
     mapping(bytes32 => address) custodians;
+    mapping(bytes4 => callback) callbacks;
 
-    function dispenseBountyTo(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
+    function dispenseBountyTo(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
+        callback storage thisCallback = callbacks[msg.sig];
+        if (thisCallback.target != address(0)){
+            thisCallback.target.call(thisCallback.call);
+        }
+    }
 
     function refundBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
 
@@ -62,5 +72,9 @@ contract TestBountyDispenser is IBountyDispenser {
         callRecord[] storage functionCalls = calls[signature];
         functionCalls.push(callRecord(data, sender));
         _;
+    }
+
+    function registerCallback(bytes4 signature, address target, bytes memory call) external {
+        callbacks[signature] = callback(call, target);
     }
 }
