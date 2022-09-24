@@ -12,11 +12,11 @@ import "./BountyDirectory.sol";
 /// that functionally observe msg.sender is not advised.
 contract ScheduledFunctionCallDirectory {
     uint256 private index;
-    mapping(uint256 => ScheduledCall) directory;
-    BountyDirectory public bountyDirectory;
+    mapping(uint256 => ScheduledCall) private directory;
+    BountyDirectory public bounties;
 
     constructor() {
-        bountyDirectory = new BountyDirectory();
+        bounties = new BountyDirectory();
     }
 
     struct ScheduledCall {
@@ -45,11 +45,11 @@ contract ScheduledFunctionCallDirectory {
         returns (uint256)
     {
         // call isn't expired already
-        require(expires > block.timestamp, "call expiry timestamp cannot be in the past");
+        require(expires > block.timestamp, "expiry cannot be in the past");
 
         // call includes ether amount specified to be sent with call
         if (msg.value != value) {
-            revert("Sent ether doesnt equal required ether.");
+            revert("Sent ether doesnt equal required ether");
         }
 
         // increment to get identifier for new call
@@ -91,11 +91,11 @@ contract ScheduledFunctionCallDirectory {
         }
 
         // fetch bounty
-        (address bountyContract, bytes32 bountyHash) = bountyDirectory.getBountyInfo(bounty);
+        (address bountyContract, bytes32 bountyHash) = bounties.getBountyInfo(bounty);
         IBountyDispenser dispenser = IBountyDispenser(bountyContract);
 
         // deregister bounty
-        bountyDirectory.deregisterBounty(bounty);
+        bounties.deregisterBounty(bounty);
 
         // pay bounty to recipient
         dispenser.dispenseBountyTo(bountyHash, recipient);
@@ -103,23 +103,23 @@ contract ScheduledFunctionCallDirectory {
 
     function RefundSchedule(uint256 callToPop, address recipient) public {
         ScheduledCall storage str = directory[callToPop];
-        require(str.owner == msg.sender, "Caller does not own this scheduled call.");
+        require(str.owner == msg.sender, "caller not owner of call");
 
         bytes32 bounty = str.bounty;
 
         delete directory[callToPop];
 
         // fetch bounty
-        (address bountyContract, bytes32 bountyHash) = bountyDirectory.getBountyInfo(bounty);
+        (address bountyContract, bytes32 bountyHash) = bounties.getBountyInfo(bounty);
         IBountyDispenser dispenser = IBountyDispenser(bountyContract);
         // deregister bounty
-        bountyDirectory.deregisterBounty(bounty);
+        bounties.deregisterBounty(bounty);
 
         // pay bounty to recipient
         dispenser.refundBounty(bountyHash, recipient);
     }
 
     function CallRewards(uint256 call) public view returns (address, bytes32) {
-        return bountyDirectory.getBountyInfo(directory[call].bounty);
+        return bounties.getBountyInfo(directory[call].bounty);
     }
 }

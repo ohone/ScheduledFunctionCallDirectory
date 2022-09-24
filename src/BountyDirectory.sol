@@ -5,7 +5,7 @@ import "./IBountyDispenser.sol";
 import "./IBountyDirectory.sol";
 
 contract BountyDirectory is IBountyDirectory {
-    mapping(bytes32 => bountyInfo) bountyContracts;
+    mapping(bytes32 => bountyInfo) private bountyContracts;
 
     struct bountyInfo {
         address bountyContract;
@@ -13,7 +13,7 @@ contract BountyDirectory is IBountyDirectory {
     }
 
     modifier onlyContract(address bountyContract) {
-        require(msg.sender == bountyContract, "Caller is not holder of the bounty.");
+        require(msg.sender == bountyContract, "Caller not holder of bounty.");
         _;
     }
 
@@ -30,7 +30,7 @@ contract BountyDirectory is IBountyDirectory {
     function deregisterBounty(bytes32 addressedBountyHash) external {
         bountyInfo storage info = bountyContracts[addressedBountyHash];
         address custodian = IBountyDispenser(info.bountyContract).getBountyCustodian(info.bountyHash);
-        require(msg.sender == custodian, "only bounty custodian can deregister bounty");
+        require(msg.sender == custodian, "only custodian can deregister");
 
         delete bountyContracts[addressedBountyHash];
     }

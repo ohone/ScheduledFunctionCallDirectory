@@ -1,0 +1,9 @@
+{
+    "extends": "solhint:recommended",
+    "plugins": [],
+    "rules": {
+      "avoid-suicide": "error",
+      "compiler-version": "none",
+      "func-name-mixedcase": "none"
+    }
+  }

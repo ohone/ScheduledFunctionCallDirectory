@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../src/ScheduledFunctionCallDirectory.sol";
 import "./utils/AuditableContract.sol";
 import "openzeppelin-contracts/interfaces/IERC20.sol";
-import "./utils/TestERC20.sol";
+// solhint-disable-next-line
 import "./utils/TestBountyDispenser.sol";
 
 contract ScheduledFunctionCallDirectoryTest is Test {
@@ -64,7 +64,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
     function testSchedulingCall_SendsMoreEtherThanRequired_Reverts() public {
         uint256 methodValue = 1;
 
-        vm.expectRevert("Sent ether doesnt equal required ether.");
+        vm.expectRevert("Sent ether doesnt equal required ether");
         directory.scheduleCall{value: methodValue + 1}(
             address(0),
             100,
@@ -79,7 +79,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
     function testSchedulingCall_SendsLessEtherThanRequired_Reverts() public {
         uint256 methodValue = 1;
 
-        vm.expectRevert("Sent ether doesnt equal required ether.");
+        vm.expectRevert("Sent ether doesnt equal required ether");
         directory.scheduleCall{value: methodValue - 1}(
             address(0),
             100,
@@ -113,7 +113,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(1);
 
         AuditableContract target = new AuditableContract(false);
-        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bounties(), address(directory));
 
         uint256 functionId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -140,7 +140,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 arg2 = 3;
 
         AuditableContract target = new AuditableContract(false);
-        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bounties(), address(directory));
 
         uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -168,7 +168,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(false);
 
-        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bounties(), address(directory));
 
         uint256 scheduledCallId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -195,7 +195,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         address recipient = address(1);
 
         (TestBountyDispenser bountyDispenser,, bytes32 addressedBountyHash) =
-            setupMockBounty(directory.bountyDirectory(), address(directory));
+            setupMockBounty(directory.bounties(), address(directory));
 
         uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -245,7 +245,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         vm.warp(currentTimestamp);
 
-        vm.expectRevert("call expiry timestamp cannot be in the past");
+        vm.expectRevert("expiry cannot be in the past");
         directory.scheduleCall{value: methodValue}(
             address(target),
             100,
@@ -290,7 +290,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(false);
 
-        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bounties(), address(directory));
 
         vm.warp(currentTimestamp);
 
@@ -312,7 +312,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         AuditableContract target = new AuditableContract(false);
 
-        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bountyDirectory(), address(directory));
+        (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bounties(), address(directory));
 
         uint256 methodValue = 1;
         address recipient = address(1);
@@ -341,7 +341,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         // setup bounty mocks
         AuditableContract target = new AuditableContract(false);
         (TestBountyDispenser bountyDispenser,, bytes32 addressedBountyHash) =
-            setupMockBounty(directory.bountyDirectory(), address(directory));
+            setupMockBounty(directory.bounties(), address(directory));
 
         // schedule call with bounty
         uint256 methodValue = 1;
@@ -373,14 +373,14 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         assertEq(1, records.length);
     }
 
-    function setupMockBounty(BountyDirectory bountyDirectory, address custodian)
+    function setupMockBounty(BountyDirectory bounties, address custodian)
         private
         returns (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash)
     {
         bountyDispenser = new TestBountyDispenser();
         bountyHash = bytes32(0x0);
         bountyDispenser.setBountyCustodianResponse(bountyHash, address(custodian));
-        addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bountyDirectory));
+        addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bounties));
         return (bountyDispenser, bountyHash, addressedBountyHash);
     }
 }

@@ -20,7 +20,7 @@ contract BountyDirectoryTest is Test {
     }
 
     function testRegisterBounty_FromNonBountyAddress_Reverts() public {
-        vm.expectRevert("Caller is not holder of the bounty.");
+        vm.expectRevert("Caller not holder of bounty.");
         directory.registerBounty(bytes32(0), address(bountyDispenser));
     }
 
@@ -37,7 +37,7 @@ contract BountyDirectoryTest is Test {
 
         // assert
         vm.expectRevert("bounty does not exist");
-        (address contractAddress, bytes32 returnedHash) = directory.getBountyInfo(addressedBountyHash);
+        directory.getBountyInfo(addressedBountyHash);
     }
 
     function testDeregisterRegisteredBounty_NotFromCustodian_Reverts() public {
@@ -49,7 +49,7 @@ contract BountyDirectoryTest is Test {
         bountyDispenser.setBountyCustodianResponse(addressedBountyHash, address(address(1)));
 
         // act
-        vm.expectRevert("only bounty custodian can deregister bounty");
+        vm.expectRevert("only custodian can deregister");
         directory.deregisterBounty(addressedBountyHash);
     }
 
@@ -69,6 +69,6 @@ contract BountyDirectoryTest is Test {
 
     function testGetBountyInfo_NotExistantBounty_Reverts() public {
         vm.expectRevert("bounty does not exist");
-        (address contractAddress, bytes32 returnedHash) = directory.getBountyInfo(bytes32(uint256(1)));
+        directory.getBountyInfo(bytes32(uint256(1)));
     }
 }

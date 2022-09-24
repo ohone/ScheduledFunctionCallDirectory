@@ -8,9 +8,9 @@ import "openzeppelin-contracts/interfaces/IERC1155Receiver.sol";
 import "./utils/TestERC1155Reciever.sol";
 
 contract ERC1155BountyDirectoryTest is BountyDispenserTestBase {
-    ERC1155BountyDirectory dispenser;
-    TestERC1155 testToken;
-    TestERC1155Reciever reciever;
+    ERC1155BountyDirectory private dispenser;
+    TestERC1155 private testToken;
+    TestERC1155Reciever private reciever;
 
     constructor() {
         reciever = new TestERC1155Reciever();
@@ -27,6 +27,7 @@ contract ERC1155BountyDirectoryTest is BountyDispenserTestBase {
         address custodian = address(1);
 
         bytes32 bountyHash = dispenser.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
+        assertFalse(bountyHash == bytes32(0));
     }
 
     function testSupplyBounty_TransfersBounty() public override {
@@ -37,7 +38,7 @@ contract ERC1155BountyDirectoryTest is BountyDispenserTestBase {
         testToken.setApprovalForAll(address(dispenser), true);
         address custodian = address(1);
 
-        bytes32 bountyHash = dispenser.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
+        dispenser.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
 
         assertEq(0, testToken.balanceOf(address(reciever), tokenId));
         assertEq(amount, testToken.balanceOf(address(dispenser), tokenId));
