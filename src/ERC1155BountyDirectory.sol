@@ -6,68 +6,55 @@ import "openzeppelin-contracts/interfaces/IERC1155Receiver.sol";
 import "./BountyDispenserBase.sol";
 
 contract ERC1155BountyDirectory is BountyDispenserBase, IERC1155Receiver {
+    constructor() ERC721("ERC1155Bounty", "ERC1155B") {}
+
     struct ERC1155Bounty {
         address token;
         address from;
         uint256 id;
         uint256 amount;
-        address custodian;
     }
 
-    mapping(bytes32 => ERC1155Bounty) bounties;
+    mapping(uint256 => ERC1155Bounty) private bounties;
 
     function supplyBounty(address token, address from, uint256 id, uint256 amount, address custodian)
         external
-        returns (bytes32)
+        returns (uint256)
     {
         IERC1155(token).safeTransferFrom(from, address(this), id, amount, "");
 
-        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, id, amount, custodian));
+        uint256 bountyId = getNewBountyId();
+        bounties[bountyId] = ERC1155Bounty(token, from, id, amount);
+        _mint(custodian, bountyId);
 
-        bounties[bountyHash] = ERC1155Bounty(token, from, id, amount, custodian);
-
-        return bountyHash;
+        return bountyId;
     }
 
-    function transferOwnership(bytes32 bountyHash, address recipient) external {
-        ERC1155Bounty storage bounty = bounties[bountyHash];
+    function claimBounty(uint256 bountyId, address recipient) external {
+        ERC1155Bounty storage bounty = bounties[bountyId];
 
-        require(msg.sender == bounty.custodian, "only custodian can dispense bounty");
-
-        bounty.custodian = recipient;
-
-        // emit event
-    }
-
-    function claimBounty(bytes32 bountyHash, address recipient) external {
-        ERC1155Bounty storage bounty = bounties[bountyHash];
-
-        require(msg.sender == bounty.custodian, "only custodian can claim bounty");
+        require(msg.sender == ownerOf(bountyId), "only custodian can claim bounty");
 
         uint256 id = bounty.id;
         address token = bounty.token;
         uint256 amount = bounty.amount;
 
-        delete bounties[bountyHash];
+        delete bounties[bountyId];
 
+        _burn(bountyId);
         IERC1155(token).safeTransferFrom(address(this), recipient, id, amount, "");
     }
-    
-    function getBountyCustodian(bytes32 bountyHash) external view returns (address) {
-        ERC1155Bounty storage bounty = bounties[bountyHash];
 
-        return bounty.custodian;
-    }
-
-    function bountyExists(bytes32 bountyHash) public view override returns (bool) {
-        return bounties[bountyHash].token != address(0);
+    function bountyExists(uint256 tokenId) public view override returns (bool) {
+        return bounties[tokenId].token != address(0);
     }
 
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
-        return interfaceId == type(IERC165).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public pure override (IERC165, ERC721) returns (bool) {
+        return interfaceId == type(IERC165).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
+            || interfaceId == type(IERC721).interfaceId;
     }
 
     /**

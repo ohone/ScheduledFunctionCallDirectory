@@ -5,54 +5,42 @@ import "openzeppelin-contracts/interfaces/IERC20.sol";
 import "./BountyDispenserBase.sol";
 
 contract ERC20BountyDirectory is BountyDispenserBase {
+    constructor() ERC721("ERC20Bounty", "ERC20B") {}
+
     struct ERC20Bounty {
         address token;
         address from;
         uint256 amount;
-        address custodian;
     }
 
-    mapping(bytes32 => ERC20Bounty) private bounties;
+    mapping(uint256 => ERC20Bounty) private bounties;
 
-    function supplyBounty(address token, address from, uint256 amount, address custodian) external returns (bytes32) {
+    function supplyBounty(address token, address from, uint256 amount, address custodian) external returns (uint256) {
         IERC20(token).transferFrom(from, address(this), amount);
 
-        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, amount));
+        uint256 bountyId = getNewBountyId();
+        bounties[bountyId] = ERC20Bounty(token, from, amount);
 
-        bounties[bountyHash] = ERC20Bounty(token, from, amount, custodian);
+        _mint(custodian, bountyId);
 
-        return bountyHash;
+        return bountyId;
     }
 
-    function transferOwnership(bytes32 bountyHash, address recipient) external {
-        ERC20Bounty storage bounty = bounties[bountyHash];
+    function claimBounty(uint256 bountyId, address recipient) external {
+        ERC20Bounty storage bounty = bounties[bountyId];
 
-        require(msg.sender == bounty.custodian, "only custodian can dispense bounty");
-        bounty.custodian = recipient;
-    
-        // emit event
-    }
-
-    function claimBounty(bytes32 bountyHash, address recipient) external {
-        ERC20Bounty storage bounty = bounties[bountyHash];
-
-        require(msg.sender == bounty.custodian, "only custodian can claim bounty");
+        require(msg.sender == ownerOf(bountyId), "only custodian can claim bounty");
 
         uint256 amount = bounty.amount;
         address token = bounty.token;
 
-        delete bounties[bountyHash];
+        delete bounties[bountyId];
 
+        _burn(bountyId);
         IERC20(token).transfer(recipient, amount);
     }
 
-    function getBountyCustodian(bytes32 bountyHash) external view returns (address) {
-        ERC20Bounty storage bounty = bounties[bountyHash];
-
-        return bounty.custodian;
-    }
-
-    function bountyExists(bytes32 bountyHash) public view override returns (bool) {
+    function bountyExists(uint256 bountyHash) public view override returns (bool) {
         return bounties[bountyHash].token != address(0);
     }
 }

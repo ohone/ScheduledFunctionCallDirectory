@@ -6,54 +6,42 @@ import "openzeppelin-contracts/interfaces/IERC721Receiver.sol";
 import "./BountyDispenserBase.sol";
 
 contract ERC721BountyDirectory is BountyDispenserBase, IERC721Receiver {
+    constructor() ERC721("ERC721Bounty", "ERC721B") {}
+
     struct ERC721Bounty {
         address token;
         address from;
         uint256 id;
-        address custodian;
     }
 
-    mapping(bytes32 => ERC721Bounty) private bounties;
+    mapping(uint256 => ERC721Bounty) private bounties;
 
-    function supplyBounty(address token, address from, uint256 id, address custodian) external returns (bytes32) {
+    function supplyBounty(address token, address from, uint256 id, address custodian) external returns (uint256) {
         IERC721(token).safeTransferFrom(from, address(this), id);
 
-        bytes32 bountyHash = keccak256(abi.encodePacked(token, from, id, custodian));
+        uint256 bountyId = getNewBountyId();
 
-        bounties[bountyHash] = ERC721Bounty(token, from, id, custodian);
+        bounties[bountyId] = ERC721Bounty(token, from, id);
+        _mint(custodian, bountyId);
 
-        return bountyHash;
+        return bountyId;
     }
 
-    function transferOwnership(bytes32 bountyHash, address recipient) external {
-        ERC721Bounty storage bounty = bounties[bountyHash];
+    function claimBounty(uint256 bountyId, address recipient) external {
+        ERC721Bounty storage bounty = bounties[bountyId];
 
-        require(msg.sender == bounty.custodian, "only custodian can dispense bounty");
-
-        bounty.custodian = recipient;
-        // emit event
-    }
-
-    function claimBounty(bytes32 bountyHash, address recipient) external {
-        ERC721Bounty storage bounty = bounties[bountyHash];
-
-        require(msg.sender == bounty.custodian, "only custodian can claim bounty");
+        require(msg.sender == ownerOf(bountyId), "only custodian can claim bounty");
 
         uint256 id = bounty.id;
         address token = bounty.token;
 
-        delete bounties[bountyHash];
+        delete bounties[bountyId];
 
+        _burn(bountyId);
         IERC721(token).safeTransferFrom(address(this), recipient, id);
     }
 
-    function getBountyCustodian(bytes32 bountyHash) external view returns (address) {
-        ERC721Bounty storage bounty = bounties[bountyHash];
-
-        return bounty.custodian;
-    }
-
-    function bountyExists(bytes32 bountyHash) public view override returns (bool) {
+    function bountyExists(uint256 bountyHash) public view override returns (bool) {
         return bounties[bountyHash].token != address(0);
     }
 

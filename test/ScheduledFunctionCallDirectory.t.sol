@@ -6,14 +6,17 @@ import "../src/ScheduledFunctionCallDirectory.sol";
 import "./utils/AuditableContract.sol";
 import "openzeppelin-contracts/interfaces/IERC20.sol";
 import "./utils/TestBountyDispenser.sol";
+import "openzeppelin-contracts/token/ERC721/utils/ERC721Holder.sol";
 
 contract ScheduledFunctionCallDirectoryTest is Test {
     ScheduledFunctionCallDirectory private directory;
+    IERC721Receiver erc721Receiver;
 
     event Called(uint256 argument1, uint256 argument2);
     event CallScheduled(uint256 indexed timestamp, uint256 indexed expires, uint256 id, bytes args, bytes32 bounty);
 
     function setUp() public {
+        erc721Receiver = new ERC721Holder();
         directory = new ScheduledFunctionCallDirectory();
         vm.warp(0);
     }
@@ -314,7 +317,6 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         (,, bytes32 addressedBountyHash) = setupMockBounty(directory.bounties(), address(directory));
 
         uint256 methodValue = 1;
-        address recipient = address(1);
 
         uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
             address(target),
@@ -328,20 +330,19 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         vm.warp(scheduled);
 
-        directory.PopCall(scheduledFunctionId, address(this));
+        directory.PopCall(scheduledFunctionId, address(erc721Receiver));
 
         vm.expectRevert("Call has expired.");
-        directory.PopCall(scheduledFunctionId, recipient);
+        directory.PopCall(scheduledFunctionId, address(erc721Receiver));
     }
 
     function setupMockBounty(BountyDirectory bounties, address custodian)
         private
-        returns (TestBountyDispenser bountyDispenser, bytes32 bountyHash, bytes32 addressedBountyHash)
+        returns (TestBountyDispenser bountyDispenser, uint256 bountyId, bytes32 addressedBountyHash)
     {
         bountyDispenser = new TestBountyDispenser();
-        bountyHash = bytes32(0x0);
-        bountyDispenser.setBountyCustodianResponse(bountyHash, address(custodian));
-        addressedBountyHash = bountyDispenser.registerBounty(bountyHash, address(bounties));
-        return (bountyDispenser, bountyHash, addressedBountyHash);
+        bountyId = bountyDispenser.createBounty(custodian);
+        addressedBountyHash = bountyDispenser.registerBounty(bountyId, address(bounties));
+        return (bountyDispenser, bountyId, addressedBountyHash);
     }
 }

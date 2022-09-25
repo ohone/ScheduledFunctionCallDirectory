@@ -9,7 +9,7 @@ contract BountyDirectory is IBountyDirectory {
 
     struct bountyInfo {
         address bountyContract;
-        bytes32 bountyHash;
+        uint256 bountyHash;
     }
 
     modifier onlyContract(address bountyContract) {
@@ -17,7 +17,7 @@ contract BountyDirectory is IBountyDirectory {
         _;
     }
 
-    function registerBounty(bytes32 bountyHash, address bountyContract)
+    function registerBounty(uint256 bountyHash, address bountyContract)
         external
         onlyContract(bountyContract)
         returns (bytes32)
@@ -29,13 +29,13 @@ contract BountyDirectory is IBountyDirectory {
 
     function deregisterBounty(bytes32 addressedBountyHash) external {
         bountyInfo storage info = bountyContracts[addressedBountyHash];
-        address custodian = IBountyDispenser(info.bountyContract).getBountyCustodian(info.bountyHash);
+        address custodian = IBountyDispenser(info.bountyContract).ownerOf(info.bountyHash);
         require(msg.sender == custodian, "only custodian can deregister");
 
         delete bountyContracts[addressedBountyHash];
     }
 
-    function getBountyInfo(bytes32 addressedBountyHash) external view returns (address, bytes32) {
+    function getBountyInfo(bytes32 addressedBountyHash) external view returns (address, uint256) {
         bountyInfo storage info = bountyContracts[addressedBountyHash];
         if (info.bountyContract == address(0)) {
             revert("bounty does not exist");

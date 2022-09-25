@@ -6,10 +6,10 @@ interface IBountyDirectory {
     /// in this directory, and returns a new identifier for referring to this
     /// bounty in this contract.
     /// @dev The returned
-    /// @param bountyHash  the identifier of the bounty in the referenced bountyContract
+    /// @param tokenId  the identifier of the bounty in the referenced bountyContract
     /// to register.
     /// @return bountyHash a new identifier used for referring to the bounty in this contract.
-    function registerBounty(bytes32 bountyHash, address bountyContract) external returns (bytes32);
+    function registerBounty(uint256 tokenId, address bountyContract) external returns (bytes32);
     /// @notice Removes the bounty from this register. Does not
     /// refund or otherwise action the bounty from the contract that describes
     /// it or the bounty's controller.
@@ -19,5 +19,5 @@ interface IBountyDirectory {
     /// @param bountyHash the identifier of the bounty
     /// @return (address,bytes32) the address of the contract that describes the bounty
     /// and the identifier of the bounty within that contract.
-    function getBountyInfo(bytes32 bountyHash) external returns (address, bytes32);
+    function getBountyInfo(bytes32 bountyHash) external returns (address, uint256);
 }

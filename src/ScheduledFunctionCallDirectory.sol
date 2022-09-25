@@ -91,14 +91,14 @@ contract ScheduledFunctionCallDirectory {
         }
 
         // fetch bounty
-        (address bountyContract, bytes32 bountyHash) = bounties.getBountyInfo(bounty);
+        (address bountyContract, uint256 bountyHash) = bounties.getBountyInfo(bounty);
         IBountyDispenser dispenser = IBountyDispenser(bountyContract);
 
         // deregister bounty
         bounties.deregisterBounty(bounty);
 
         // pay bounty to recipient
-        dispenser.transferOwnership(bountyHash, recipient);
+        dispenser.safeTransferFrom(address(this), recipient, bountyHash, "");
     }
 
     function RefundSchedule(uint256 callToPop, address recipient) public {
@@ -110,16 +110,16 @@ contract ScheduledFunctionCallDirectory {
         delete directory[callToPop];
 
         // fetch bounty
-        (address bountyContract, bytes32 bountyHash) = bounties.getBountyInfo(bounty);
+        (address bountyContract, uint256 bountyHash) = bounties.getBountyInfo(bounty);
         IBountyDispenser dispenser = IBountyDispenser(bountyContract);
         // deregister bounty
         bounties.deregisterBounty(bounty);
 
         // pay bounty to recipient
-        dispenser.transferOwnership(bountyHash, recipient);
+        dispenser.safeTransferFrom(address(this), recipient, bountyHash, "");
     }
 
-    function CallRewards(uint256 call) public view returns (address, bytes32) {
+    function CallRewards(uint256 call) public view returns (address, uint256) {
         return bounties.getBountyInfo(directory[call].bounty);
     }
 }

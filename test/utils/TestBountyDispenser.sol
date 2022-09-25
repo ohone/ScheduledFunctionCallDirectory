@@ -3,8 +3,11 @@ pragma solidity ^0.8.13;
 
 import "src/IBountyDispenser.sol";
 import "src/IBountyDirectory.sol";
+import "../../src/BountyDispenserBase.sol";
 
-contract TestBountyDispenser is IBountyDispenser {
+contract TestBountyDispenser is BountyDispenserBase {
+    constructor() ERC721("ERC1155Bounty", "ERC1155B") {}
+
     struct callRecord {
         bytes args;
         address sender;
@@ -16,38 +19,35 @@ contract TestBountyDispenser is IBountyDispenser {
     }
 
     mapping(bytes4 => callRecord[]) public calls;
-    mapping(bytes32 => address) public custodians;
+    mapping(uint256 => address) public custodians;
     mapping(bytes4 => callback) public callbacks;
 
-    function transferOwnership(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
-        callback storage thisCallback = callbacks[msg.sig];
-        if (thisCallback.target != address(0)) {
-            thisCallback.target.call(thisCallback.call);
-        }
-    }
+    function claimBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
 
-    function claimBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
-
-    }
-
-    function registerBounty(bytes32 bountyHash, address registrar)
+    function registerBounty(uint256 tokenId, address registrar)
         external
         recordCall(msg.sig, msg.data, msg.sender)
         returns (bytes32)
     {
-        return IBountyDirectory(registrar).registerBounty(bountyHash, address(this));
+        return IBountyDirectory(registrar).registerBounty(tokenId, address(this));
     }
 
-    function getBountyCustodian(bytes32 bountyHash)
+    function createBounty(address reciever) external returns (uint256 bountyId) {
+        uint256 bountyId = getNewBountyId();
+        _mint(reciever, bountyId);
+        return bountyId;
+    }
+
+    function getBountyCustodian(uint256 bountyId)
         external
         recordCall(msg.sig, msg.data, msg.sender)
         returns (address)
     {
-        return custodians[bountyHash];
+        return custodians[bountyId];
     }
 
-    function setBountyCustodianResponse(bytes32 bounty, address addr) external {
-        custodians[bounty] = addr;
+    function bountyExists(uint256 bountyId) public view override returns (bool) {
+        return true;
     }
 
     function getCallRecords(bytes4 signature) external view returns (callRecord[] memory) {

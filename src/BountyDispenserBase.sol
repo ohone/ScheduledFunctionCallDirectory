@@ -3,12 +3,14 @@ pragma solidity ^0.8.13;
 
 import "./IBountyDispenser.sol";
 import "./IBountyDirectory.sol";
+import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 
-abstract contract BountyDispenserBase is IBountyDispenser {
-    function registerBounty(bytes32 bountyHash, address registrar) external returns (bytes32) {
-        require(bountyExists(bountyHash), "specified bounty doesn't exist");
-        return IBountyDirectory(registrar).registerBounty(bountyHash, address(this));
+abstract contract BountyDispenserBase is IBountyDispenser, ERC721 {
+    uint256 private currentBountyId;
+
+    function getNewBountyId() public returns (uint256) {
+        return currentBountyId++;
     }
 
-    function bountyExists(bytes32 bountyHash) public view virtual returns (bool);
+    function bountyExists(uint256 tokenId) public view virtual returns (bool);
 }
