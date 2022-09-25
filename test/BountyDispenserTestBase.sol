@@ -12,15 +12,13 @@ abstract contract BountyDispenserTestBase is Test {
 
     function testSupplyBounty_TransfersBounty() public virtual;
 
-    function testDispenseBountyTo_NotCustodian_Reverts() public virtual;
+    function testTransferOwnership_NotCustodian_Reverts() public virtual;
 
-    function testDispenseBountyTo_AsCustodian_TransfersToken() public virtual;
+    function testTransferOwnership_AsCustodian_TransfersOwnership() public virtual;
 
-    function testDispenseBountyTo_Success_BountyDeleted() public virtual;
+    function testClaimBounty_AsBountyOwner_TransfersTokenToRecipient() public virtual;
 
-    function testRefundBounty_AsBountyOwner_TransfersTokenToRecipient() public virtual;
-
-    function testRefundBOunty_NotBountyOwner_Reverts() public virtual;
+    function testClaimBounty_NotBountyOwner_Reverts() public virtual;
 
     function testGetBountyCustodian_ExistingBounty_ReturnsCustodian() public virtual;
 

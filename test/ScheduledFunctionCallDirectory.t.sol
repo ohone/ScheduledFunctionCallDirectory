@@ -5,7 +5,6 @@ import "forge-std/Test.sol";
 import "../src/ScheduledFunctionCallDirectory.sol";
 import "./utils/AuditableContract.sol";
 import "openzeppelin-contracts/interfaces/IERC20.sol";
-// solhint-disable-next-line
 import "./utils/TestBountyDispenser.sol";
 
 contract ScheduledFunctionCallDirectoryTest is Test {
@@ -333,44 +332,6 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
         vm.expectRevert("Call has expired.");
         directory.PopCall(scheduledFunctionId, recipient);
-    }
-
-    function testReentryIntoPopCall_BountyNotResent(uint256 scheduled) public {
-        vm.assume(scheduled > 0);
-
-        // setup bounty mocks
-        AuditableContract target = new AuditableContract(false);
-        (TestBountyDispenser bountyDispenser,, bytes32 addressedBountyHash) =
-            setupMockBounty(directory.bounties(), address(directory));
-
-        // schedule call with bounty
-        uint256 methodValue = 1;
-        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
-            address(target),
-            scheduled,
-            methodValue,
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
-            UINT256_MAX,
-            address(this),
-            addressedBountyHash
-        );
-
-        // warp to call scheduled
-        vm.warp(scheduled);
-
-        address recipient = address(103);
-
-        // setup a reentrant callback from bounty dispense
-        bytes memory reentryCallback =
-            abi.encodeWithSignature("popCall(uint256,address)", scheduledFunctionId, recipient);
-        bytes4 dispenseBountySignature = bytes4(keccak256(bytes("dispenseBountyTo(bytes32,address)")));
-        bountyDispenser.registerCallback(dispenseBountySignature, address(directory), reentryCallback);
-
-        directory.PopCall(scheduledFunctionId, recipient);
-
-        // assert bounty dispense only called once
-        TestBountyDispenser.callRecord[] memory records = bountyDispenser.getCallRecords(dispenseBountySignature);
-        assertEq(1, records.length);
     }
 
     function setupMockBounty(BountyDirectory bounties, address custodian)

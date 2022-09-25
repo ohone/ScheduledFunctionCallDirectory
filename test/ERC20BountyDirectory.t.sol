@@ -33,7 +33,7 @@ contract ERC20BountyDirectoryTest is BountyDispenserTestBase {
         assertEq(100, testToken.balanceOf(address(dispenser)));
     }
 
-    function testDispenseBountyTo_NotCustodian_Reverts() public override {
+    function testTransferOwnership_NotCustodian_Reverts() public override {
         // supply bountty
         testToken.mint(address(this), 100);
         testToken.approve(address(dispenser), 100);
@@ -41,10 +41,10 @@ contract ERC20BountyDirectoryTest is BountyDispenserTestBase {
         bytes32 bountyHash = dispenser.supplyBounty(address(testToken), address(this), 100, custodian);
 
         vm.expectRevert("only custodian can dispense bounty");
-        dispenser.dispenseBountyTo(bountyHash, address(this));
+        dispenser.transferOwnership(bountyHash, address(this));
     }
 
-    function testDispenseBountyTo_AsCustodian_TransfersToken() public override {
+    function testTransferOwnership_AsCustodian_TransfersOwnership() public override {
         // supply bountty
         testToken.mint(address(this), 100);
         testToken.approve(address(dispenser), 100);
@@ -52,32 +52,18 @@ contract ERC20BountyDirectoryTest is BountyDispenserTestBase {
         bytes32 bountyHash = dispenser.supplyBounty(address(testToken), address(this), 100, custodian);
 
         // act
+        address reciever = address(1337);
         vm.prank(custodian);
-        dispenser.dispenseBountyTo(bountyHash, custodian);
+        dispenser.transferOwnership(bountyHash, reciever);
 
-        assertEq(100, testToken.balanceOf(custodian));
+        assertEq(reciever, dispenser.getBountyCustodian(bountyHash));
+
+        vm.prank(reciever);
+        dispenser.claimBounty(bountyHash, reciever);
+        assertEq(100, testToken.balanceOf(reciever));
     }
 
-    function testDispenseBountyTo_Success_BountyDeleted() public override {
-        // supply bountty
-        testToken.mint(address(this), 100);
-        // double-up tokens owned by dispenser
-        testToken.mint(address(dispenser), 100);
-        testToken.approve(address(dispenser), 200);
-        address custodian = address(1);
-        bytes32 bountyHash = dispenser.supplyBounty(address(testToken), address(this), 100, custodian);
-
-        // act
-        vm.prank(custodian);
-        dispenser.dispenseBountyTo(bountyHash, custodian);
-        assertEq(100, testToken.balanceOf(custodian));
-
-        // act again, attempt to get the other 100 tokens
-        vm.expectRevert("only custodian can dispense bounty");
-        dispenser.dispenseBountyTo(bountyHash, custodian);
-    }
-
-    function testRefundBounty_AsBountyOwner_TransfersTokenToRecipient() public override {
+    function testClaimBounty_AsBountyOwner_TransfersTokenToRecipient() public override {
         // supply bountty
         testToken.mint(address(this), 100);
         testToken.approve(address(dispenser), 100);
@@ -85,12 +71,13 @@ contract ERC20BountyDirectoryTest is BountyDispenserTestBase {
         bytes32 bountyHash = dispenser.supplyBounty(address(testToken), address(this), 100, custodian);
 
         // act
-        address recipient = address(1);
-        dispenser.refundBounty(bountyHash, recipient);
+        address recipient = address(10);
+        vm.prank(custodian);
+        dispenser.claimBounty(bountyHash, recipient);
         assertEq(100, testToken.balanceOf(recipient));
     }
 
-    function testRefundBOunty_NotBountyOwner_Reverts() public override {
+    function testClaimBounty_NotBountyOwner_Reverts() public override {
         // supply bountty
         testToken.mint(address(this), 100);
         testToken.approve(address(dispenser), 100);
@@ -100,9 +87,9 @@ contract ERC20BountyDirectoryTest is BountyDispenserTestBase {
         // act
         address recipient = address(1);
 
-        vm.startPrank(address(1));
-        vm.expectRevert("sender doesn't have rights to this bounty");
-        dispenser.refundBounty(bountyHash, recipient);
+        vm.startPrank(address(2));
+        vm.expectRevert("only custodian can claim bounty");
+        dispenser.claimBounty(bountyHash, recipient);
     }
 
     function testGetBountyCustodian_ExistingBounty_ReturnsCustodian() public override {

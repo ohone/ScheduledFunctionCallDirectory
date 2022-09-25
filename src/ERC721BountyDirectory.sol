@@ -13,7 +13,7 @@ contract ERC721BountyDirectory is BountyDispenserBase, IERC721Receiver {
         address custodian;
     }
 
-    mapping(bytes32 => ERC721Bounty) bounties;
+    mapping(bytes32 => ERC721Bounty) private bounties;
 
     function supplyBounty(address token, address from, uint256 id, address custodian) external returns (bytes32) {
         IERC721(token).safeTransferFrom(from, address(this), id);
@@ -25,23 +25,19 @@ contract ERC721BountyDirectory is BountyDispenserBase, IERC721Receiver {
         return bountyHash;
     }
 
-    function dispenseBountyTo(bytes32 bountyHash, address recipient) external {
+    function transferOwnership(bytes32 bountyHash, address recipient) external {
         ERC721Bounty storage bounty = bounties[bountyHash];
 
         require(msg.sender == bounty.custodian, "only custodian can dispense bounty");
 
-        uint256 id = bounty.id;
-        address token = bounty.token;
-        delete bounties[bountyHash];
-
-        IERC721(token).safeTransferFrom(address(this), recipient, id);
+        bounty.custodian = recipient;
+        // emit event
     }
 
-    function refundBounty(bytes32 bountyHash, address recipient) external {
+    function claimBounty(bytes32 bountyHash, address recipient) external {
         ERC721Bounty storage bounty = bounties[bountyHash];
 
-        address bountyOwner = bounty.from;
-        require(bountyOwner == msg.sender, "sender doesn't have rights to this bounty");
+        require(msg.sender == bounty.custodian, "only custodian can claim bounty");
 
         uint256 id = bounty.id;
         address token = bounty.token;

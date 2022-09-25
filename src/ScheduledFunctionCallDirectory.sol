@@ -98,7 +98,7 @@ contract ScheduledFunctionCallDirectory {
         bounties.deregisterBounty(bounty);
 
         // pay bounty to recipient
-        dispenser.dispenseBountyTo(bountyHash, recipient);
+        dispenser.transferOwnership(bountyHash, recipient);
     }
 
     function RefundSchedule(uint256 callToPop, address recipient) public {
@@ -116,7 +116,7 @@ contract ScheduledFunctionCallDirectory {
         bounties.deregisterBounty(bounty);
 
         // pay bounty to recipient
-        dispenser.refundBounty(bountyHash, recipient);
+        dispenser.transferOwnership(bountyHash, recipient);
     }
 
     function CallRewards(uint256 call) public view returns (address, bytes32) {

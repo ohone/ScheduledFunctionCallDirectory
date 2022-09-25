@@ -15,18 +15,20 @@ contract TestBountyDispenser is IBountyDispenser {
         address target;
     }
 
-    mapping(bytes4 => callRecord[]) calls;
-    mapping(bytes32 => address) custodians;
-    mapping(bytes4 => callback) callbacks;
+    mapping(bytes4 => callRecord[]) public calls;
+    mapping(bytes32 => address) public custodians;
+    mapping(bytes4 => callback) public callbacks;
 
-    function dispenseBountyTo(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
+    function transferOwnership(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
         callback storage thisCallback = callbacks[msg.sig];
         if (thisCallback.target != address(0)) {
             thisCallback.target.call(thisCallback.call);
         }
     }
 
-    function refundBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
+    function claimBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {
+
+    }
 
     function registerBounty(bytes32 bountyHash, address registrar)
         external

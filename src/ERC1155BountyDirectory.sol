@@ -29,34 +29,30 @@ contract ERC1155BountyDirectory is BountyDispenserBase, IERC1155Receiver {
         return bountyHash;
     }
 
-    function dispenseBountyTo(bytes32 bountyHash, address recipient) external {
+    function transferOwnership(bytes32 bountyHash, address recipient) external {
         ERC1155Bounty storage bounty = bounties[bountyHash];
 
         require(msg.sender == bounty.custodian, "only custodian can dispense bounty");
 
-        uint256 amount = bounty.amount;
-        uint256 id = bounty.id;
-        address token = bounty.token;
-        delete bounties[bountyHash];
+        bounty.custodian = recipient;
 
-        IERC1155(token).safeTransferFrom(address(this), recipient, id, amount, "");
+        // emit event
     }
 
-    function refundBounty(bytes32 bountyHash, address recipient) external {
+    function claimBounty(bytes32 bountyHash, address recipient) external {
         ERC1155Bounty storage bounty = bounties[bountyHash];
 
-        address bountyOwner = bounty.from;
-        require(bountyOwner == msg.sender, "sender doesn't have rights to this bounty");
+        require(msg.sender == bounty.custodian, "only custodian can claim bounty");
 
-        uint256 amount = bounty.amount;
         uint256 id = bounty.id;
         address token = bounty.token;
+        uint256 amount = bounty.amount;
 
         delete bounties[bountyHash];
 
         IERC1155(token).safeTransferFrom(address(this), recipient, id, amount, "");
     }
-
+    
     function getBountyCustodian(bytes32 bountyHash) external view returns (address) {
         ERC1155Bounty storage bounty = bounties[bountyHash];
 
