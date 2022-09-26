@@ -9,7 +9,6 @@ contract ERC20BountyAdapter is BountyAdapterBase {
 
     struct ERC20Bounty {
         address token;
-        address from;
         uint256 amount;
     }
 
@@ -19,7 +18,7 @@ contract ERC20BountyAdapter is BountyAdapterBase {
         IERC20(token).transferFrom(from, address(this), amount);
 
         uint256 bountyId = getNewBountyId();
-        bounties[bountyId] = ERC20Bounty(token, from, amount);
+        bounties[bountyId] = ERC20Bounty(token, amount);
 
         _mint(custodian, bountyId);
 

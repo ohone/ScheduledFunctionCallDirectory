@@ -10,7 +10,6 @@ contract ERC1155BountyAdapter is BountyAdapterBase, IERC1155Receiver {
 
     struct ERC1155Bounty {
         address token;
-        address from;
         uint256 id;
         uint256 amount;
     }
@@ -24,7 +23,7 @@ contract ERC1155BountyAdapter is BountyAdapterBase, IERC1155Receiver {
         IERC1155(token).safeTransferFrom(from, address(this), id, amount, "");
 
         uint256 bountyId = getNewBountyId();
-        bounties[bountyId] = ERC1155Bounty(token, from, id, amount);
+        bounties[bountyId] = ERC1155Bounty(token, id, amount);
         _mint(custodian, bountyId);
 
         return bountyId;

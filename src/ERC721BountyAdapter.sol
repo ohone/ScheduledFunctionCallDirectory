@@ -10,7 +10,6 @@ contract ERC721BountyAdapter is BountyAdapterBase, IERC721Receiver {
 
     struct ERC721Bounty {
         address token;
-        address from;
         uint256 id;
     }
 
@@ -21,7 +20,7 @@ contract ERC721BountyAdapter is BountyAdapterBase, IERC721Receiver {
 
         uint256 bountyId = getNewBountyId();
 
-        bounties[bountyId] = ERC721Bounty(token, from, id);
+        bounties[bountyId] = ERC721Bounty(token, id);
         _mint(custodian, bountyId);
 
         return bountyId;
