@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "src/IBountyAdapter.sol";
-import "src/IBountyDirectory.sol";
 import "../../src/BountyAdapterBase.sol";
 
 contract TestBountyAdapter is BountyAdapterBase {
@@ -23,14 +22,6 @@ contract TestBountyAdapter is BountyAdapterBase {
     mapping(bytes4 => callback) public callbacks;
 
     function burnBounty(uint256, address) external recordCall(msg.sig, msg.data, msg.sender) {}
-
-    function registerBounty(uint256 tokenId, address registrar)
-        external
-        recordCall(msg.sig, msg.data, msg.sender)
-        returns (bytes32)
-    {
-        return IBountyDirectory(registrar).registerBounty(tokenId, address(this));
-    }
 
     function createBounty(address reciever) external returns (uint256 bountyId) {
         uint256 bountyId = getNewBountyId();

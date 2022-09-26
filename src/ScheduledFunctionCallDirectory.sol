@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "openzeppelin-contracts/interfaces/IERC20.sol";
-import "./BountyDirectory.sol";
+import "openzeppelin-contracts/interfaces/IERC721.sol";
+import "openzeppelin-contracts/token/ERC721/utils/ERC721Holder.sol";
 
 /// @title ScheduledFunctionCallDirectory
 /// @author eoghan
@@ -10,14 +10,9 @@ import "./BountyDirectory.sol";
 /// with a reward to the maker.
 /// Calls will be made in the context of the eventual caller, so scheduling calls
 /// that functionally observe msg.sender is not advised.
-contract ScheduledFunctionCallDirectory {
+contract ScheduledFunctionCallDirectory is ERC721Holder {
     uint256 private index;
     mapping(uint256 => ScheduledCall) private directory;
-    BountyDirectory public bounties;
-
-    constructor() {
-        bounties = new BountyDirectory();
-    }
 
     struct ScheduledCall {
         bytes arguments;
@@ -25,11 +20,19 @@ contract ScheduledFunctionCallDirectory {
         uint256 timestamp;
         uint256 value;
         uint256 expires;
+        address bountyAddress;
+        uint256 bountyId;
         address owner;
-        bytes32 bounty;
     }
 
-    event CallScheduled(uint256 indexed timestamp, uint256 indexed expires, uint256 id, bytes args, bytes32 bounty);
+    event CallScheduled(
+        uint256 indexed timestamp,
+        uint256 indexed expires,
+        uint256 id,
+        bytes args,
+        address bountyAddress,
+        uint256 bountyId
+    );
 
     function scheduleCall(
         address target,
@@ -38,7 +41,8 @@ contract ScheduledFunctionCallDirectory {
         bytes calldata args,
         uint256 expires,
         address owner,
-        bytes32 bounty
+        address bountyAddress,
+        uint256 bountyId
     )
         external
         payable
@@ -62,10 +66,11 @@ contract ScheduledFunctionCallDirectory {
         str.value = value;
         str.expires = expires;
         str.owner = owner;
-        str.bounty = bounty;
+        str.bountyId = bountyId;
+        str.bountyAddress = bountyAddress;
 
-        emit CallScheduled(timestamp, expires, index, args, bounty);
-
+        emit CallScheduled(timestamp, expires, index, args, bountyAddress, bountyId);
+        IERC721(bountyAddress).safeTransferFrom(owner, address(this), bountyId, "");
         return index;
     }
 
@@ -76,10 +81,11 @@ contract ScheduledFunctionCallDirectory {
         require(block.timestamp <= str.expires, "Call has expired.");
 
         // fetch call data
-        bytes32 bounty = str.bounty;
+        uint256 bountyId = str.bountyId;
         uint256 value = str.value;
         bytes memory args = str.arguments;
         address addr = str.target;
+        address bountyAddress = str.bountyAddress;
 
         // cleanup, gas $$, prevents reentry risk on following .call
         delete directory[callToPop];
@@ -90,36 +96,19 @@ contract ScheduledFunctionCallDirectory {
             revert("Function call reverted.");
         }
 
-        // fetch bounty
-        (address bountyContract, uint256 bountyHash) = bounties.getBountyInfo(bounty);
-        IBountyAdapter dispenser = IBountyAdapter(bountyContract);
-
-        // deregister bounty
-        bounties.deregisterBounty(bounty);
-
-        // pay bounty to recipient
-        dispenser.safeTransferFrom(address(this), recipient, bountyHash, "");
+        // transfer bounty to recipient
+        IERC721(bountyAddress).safeTransferFrom(address(this), recipient, bountyId, "");
     }
 
     function RefundSchedule(uint256 callToPop, address recipient) public {
         ScheduledCall storage str = directory[callToPop];
         require(str.owner == msg.sender, "caller not owner of call");
 
-        bytes32 bounty = str.bounty;
-
+        address owner = str.owner;
+        uint256 bountyId = str.bountyId;
+        address bountyAddress = str.bountyAddress;
         delete directory[callToPop];
 
-        // fetch bounty
-        (address bountyContract, uint256 bountyHash) = bounties.getBountyInfo(bounty);
-        IBountyAdapter dispenser = IBountyAdapter(bountyContract);
-        // deregister bounty
-        bounties.deregisterBounty(bounty);
-
-        // pay bounty to recipient
-        dispenser.safeTransferFrom(address(this), recipient, bountyHash, "");
-    }
-
-    function CallRewards(uint256 call) public view returns (address, uint256) {
-        return bounties.getBountyInfo(directory[call].bounty);
+        IERC721(bountyAddress).safeTransferFrom(address(this), str.owner, bountyId);
     }
 }

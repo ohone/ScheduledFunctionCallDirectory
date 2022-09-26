@@ -2,7 +2,6 @@
 pragma solidity ^0.8.13;
 
 import "./IBountyAdapter.sol";
-import "./IBountyDirectory.sol";
 import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 
 abstract contract BountyAdapterBase is IBountyAdapter, ERC721 {
