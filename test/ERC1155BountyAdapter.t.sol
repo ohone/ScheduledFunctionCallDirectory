@@ -90,8 +90,7 @@ contract ERC1155BountyAdapterTest is BountyAdapterTestBase {
         testToken.setApprovalForAll(address(adapter), true);
         address custodian = address(1);
 
-        uint256 bountyTokenId =
-            adapter.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
+        uint256 bountyTokenId = adapter.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
         assertEq(custodian, adapter.ownerOf(bountyTokenId));
     }
 
@@ -103,8 +102,7 @@ contract ERC1155BountyAdapterTest is BountyAdapterTestBase {
         testToken.setApprovalForAll(address(adapter), true);
         address custodian = address(1);
 
-        uint256 bountyTokenId =
-            adapter.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
+        uint256 bountyTokenId = adapter.supplyBounty(address(testToken), address(reciever), tokenId, amount, custodian);
 
         assertTrue(adapter.bountyExists(bountyTokenId));
     }
