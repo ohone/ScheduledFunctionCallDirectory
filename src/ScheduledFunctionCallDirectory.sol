@@ -14,6 +14,7 @@ contract ScheduledFunctionCallDirectory is ERC721Holder {
     uint256 private index;
     mapping(uint256 => ScheduledCall) private directory;
 
+    //ToDo: pack this
     struct ScheduledCall {
         bytes arguments;
         address target;
@@ -53,7 +54,7 @@ contract ScheduledFunctionCallDirectory is ERC721Holder {
 
         // call includes ether amount specified to be sent with call
         if (msg.value != value) {
-            revert("Sent ether doesnt equal required ether");
+            revert("sent ether != required ether");
         }
 
         // increment to get identifier for new call
@@ -100,15 +101,15 @@ contract ScheduledFunctionCallDirectory is ERC721Holder {
         IERC721(bountyAddress).safeTransferFrom(address(this), recipient, bountyId, "");
     }
 
+    // ToDo: test this
     function RefundSchedule(uint256 callToPop, address recipient) public {
         ScheduledCall storage str = directory[callToPop];
         require(str.owner == msg.sender, "caller not owner of call");
 
-        address owner = str.owner;
         uint256 bountyId = str.bountyId;
         address bountyAddress = str.bountyAddress;
         delete directory[callToPop];
 
-        IERC721(bountyAddress).safeTransferFrom(address(this), str.owner, bountyId);
+        IERC721(bountyAddress).safeTransferFrom(address(this), recipient, bountyId);
     }
 }

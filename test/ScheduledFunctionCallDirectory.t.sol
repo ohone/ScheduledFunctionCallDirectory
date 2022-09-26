@@ -89,7 +89,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         uint256 methodValue = 1;
         address bountyAddress = address(1337);
         uint256 bountyId = 1337;
-        vm.expectRevert("Sent ether doesnt equal required ether");
+        vm.expectRevert("sent ether != required ether");
         directory.scheduleCall{value: methodValue + 1}(
             address(0),
             100,
@@ -106,7 +106,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         uint256 methodValue = 1;
         address bountyAddress = address(1337);
         uint256 bountyId = 1337;
-        vm.expectRevert("Sent ether doesnt equal required ether");
+        vm.expectRevert("sent ether != required ether");
         directory.scheduleCall{value: methodValue - 1}(
             address(0),
             100,
