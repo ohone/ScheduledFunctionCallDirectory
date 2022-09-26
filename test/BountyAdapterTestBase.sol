@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "openzeppelin-contracts/token/ERC721/IERC721.sol";
 
-abstract contract BountyDispenserTestBase is Test {
+abstract contract BountyAdapterTestBase is Test {
     function getDispenserAddress() public virtual returns (address);
     function testRegisterBounty_BountyDoesntExist_Reverts() public {}
     function testRegisterBounty_ProxiesCallsToProvidedRegistrar() public {}

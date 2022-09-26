@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "openzeppelin-contracts/interfaces/IERC20.sol";
-import "./BountyDispenserBase.sol";
+import "./BountyAdapterBase.sol";
 
-contract ERC20BountyDirectory is BountyDispenserBase {
+contract ERC20BountyAdapter is BountyAdapterBase {
     constructor() ERC721("ERC20Bounty", "ERC20B") {}
 
     struct ERC20Bounty {

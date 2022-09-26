@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./IBountyDispenser.sol";
+import "./IBountyAdapter.sol";
 import "./IBountyDirectory.sol";
 import "openzeppelin-contracts/token/ERC721/ERC721.sol";
 
-abstract contract BountyDispenserBase is IBountyDispenser, ERC721 {
+abstract contract BountyAdapterBase is IBountyAdapter, ERC721 {
     uint256 private currentBountyId;
 
-    function getNewBountyId() public returns (uint256) {
+    function getNewBountyId() internal returns (uint256) {
         return currentBountyId++;
     }
 

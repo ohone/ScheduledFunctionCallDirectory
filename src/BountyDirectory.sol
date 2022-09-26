@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./IBountyDispenser.sol";
+import "./IBountyAdapter.sol";
 import "./IBountyDirectory.sol";
 
 contract BountyDirectory is IBountyDirectory {
@@ -29,7 +29,7 @@ contract BountyDirectory is IBountyDirectory {
 
     function deregisterBounty(bytes32 addressedBountyHash) external {
         bountyInfo storage info = bountyContracts[addressedBountyHash];
-        address custodian = IBountyDispenser(info.bountyContract).ownerOf(info.bountyHash);
+        address custodian = IBountyAdapter(info.bountyContract).ownerOf(info.bountyHash);
         require(msg.sender == custodian, "only custodian can deregister");
 
         delete bountyContracts[addressedBountyHash];

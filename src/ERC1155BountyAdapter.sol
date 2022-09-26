@@ -3,9 +3,9 @@ pragma solidity ^0.8.13;
 
 import "openzeppelin-contracts/interfaces/IERC1155.sol";
 import "openzeppelin-contracts/interfaces/IERC1155Receiver.sol";
-import "./BountyDispenserBase.sol";
+import "./BountyAdapterBase.sol";
 
-contract ERC1155BountyDirectory is BountyDispenserBase, IERC1155Receiver {
+contract ERC1155BountyAdapter is BountyAdapterBase, IERC1155Receiver {
     constructor() ERC721("ERC1155Bounty", "ERC1155B") {}
 
     struct ERC1155Bounty {

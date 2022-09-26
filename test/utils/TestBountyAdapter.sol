@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "src/IBountyDispenser.sol";
+import "src/IBountyAdapter.sol";
 import "src/IBountyDirectory.sol";
-import "../../src/BountyDispenserBase.sol";
+import "../../src/BountyAdapterBase.sol";
 
-contract TestBountyDispenser is BountyDispenserBase {
+contract TestBountyAdapter is BountyAdapterBase {
     constructor() ERC721("ERC1155Bounty", "ERC1155B") {}
 
     struct callRecord {

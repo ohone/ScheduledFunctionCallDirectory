@@ -3,15 +3,15 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/BountyDirectory.sol";
-import "./utils/TestBountyDispenser.sol";
+import "./utils/TestBountyAdapter.sol";
 
 contract BountyDirectoryTest is Test {
     BountyDirectory private directory;
-    TestBountyDispenser private bountyDispenser;
+    TestBountyAdapter private bountyDispenser;
 
     constructor() {
         directory = new BountyDirectory();
-        bountyDispenser = new TestBountyDispenser();
+        bountyDispenser = new TestBountyAdapter();
     }
 
     function testRegisterBounty_FromBountyAddress_RegistersBounty() public {

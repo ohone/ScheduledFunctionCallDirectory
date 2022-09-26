@@ -92,7 +92,7 @@ contract ScheduledFunctionCallDirectory {
 
         // fetch bounty
         (address bountyContract, uint256 bountyHash) = bounties.getBountyInfo(bounty);
-        IBountyDispenser dispenser = IBountyDispenser(bountyContract);
+        IBountyAdapter dispenser = IBountyAdapter(bountyContract);
 
         // deregister bounty
         bounties.deregisterBounty(bounty);
@@ -111,7 +111,7 @@ contract ScheduledFunctionCallDirectory {
 
         // fetch bounty
         (address bountyContract, uint256 bountyHash) = bounties.getBountyInfo(bounty);
-        IBountyDispenser dispenser = IBountyDispenser(bountyContract);
+        IBountyAdapter dispenser = IBountyAdapter(bountyContract);
         // deregister bounty
         bounties.deregisterBounty(bounty);
 

@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "../src/ScheduledFunctionCallDirectory.sol";
 import "./utils/AuditableContract.sol";
 import "openzeppelin-contracts/interfaces/IERC20.sol";
-import "./utils/TestBountyDispenser.sol";
+import "./utils/TestBountyAdapter.sol";
 import "openzeppelin-contracts/token/ERC721/utils/ERC721Holder.sol";
 
 contract ScheduledFunctionCallDirectoryTest is Test {
@@ -196,7 +196,7 @@ contract ScheduledFunctionCallDirectoryTest is Test {
         uint256 methodValue = 1;
         address recipient = address(1);
 
-        (TestBountyDispenser bountyDispenser,, bytes32 addressedBountyHash) =
+        (TestBountyAdapter bountyDispenser,, bytes32 addressedBountyHash) =
             setupMockBounty(directory.bounties(), address(directory));
 
         uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
@@ -338,9 +338,9 @@ contract ScheduledFunctionCallDirectoryTest is Test {
 
     function setupMockBounty(BountyDirectory bounties, address custodian)
         private
-        returns (TestBountyDispenser bountyDispenser, uint256 bountyId, bytes32 addressedBountyHash)
+        returns (TestBountyAdapter bountyDispenser, uint256 bountyId, bytes32 addressedBountyHash)
     {
-        bountyDispenser = new TestBountyDispenser();
+        bountyDispenser = new TestBountyAdapter();
         bountyId = bountyDispenser.createBounty(custodian);
         addressedBountyHash = bountyDispenser.registerBounty(bountyId, address(bounties));
         return (bountyDispenser, bountyId, addressedBountyHash);
