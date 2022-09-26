@@ -26,7 +26,7 @@ contract ERC721BountyAdapter is BountyAdapterBase, IERC721Receiver {
         return bountyId;
     }
 
-    function claimBounty(uint256 bountyId, address recipient) external {
+    function burnBounty(uint256 bountyId, address recipient) external {
         ERC721Bounty storage bounty = bounties[bountyId];
 
         require(msg.sender == ownerOf(bountyId), "only custodian can claim bounty");

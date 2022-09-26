@@ -29,7 +29,7 @@ contract ERC1155BountyAdapter is BountyAdapterBase, IERC1155Receiver {
         return bountyId;
     }
 
-    function claimBounty(uint256 bountyId, address recipient) external {
+    function burnBounty(uint256 bountyId, address recipient) external {
         ERC1155Bounty storage bounty = bounties[bountyId];
 
         require(msg.sender == ownerOf(bountyId), "only custodian can claim bounty");

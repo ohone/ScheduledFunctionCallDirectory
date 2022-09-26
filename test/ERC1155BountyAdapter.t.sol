@@ -59,7 +59,7 @@ contract ERC1155BountyAdapterTest is BountyAdapterTestBase {
 
         // act
         vm.prank(address(custodian));
-        adapter.claimBounty(bountyId, address(reciever));
+        adapter.burnBounty(bountyId, address(reciever));
 
         assertEq(amount, testToken.balanceOf(address(reciever), tokenId));
     }
@@ -79,7 +79,7 @@ contract ERC1155BountyAdapterTest is BountyAdapterTestBase {
 
         vm.startPrank(address(2));
         vm.expectRevert("only custodian can claim bounty");
-        adapter.claimBounty(bountyId, recipient);
+        adapter.burnBounty(bountyId, recipient);
     }
 
     function testGetBountyCustodian_ExistingBounty_ReturnsCustodian() public override {

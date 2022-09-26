@@ -22,7 +22,7 @@ contract TestBountyAdapter is BountyAdapterBase {
     mapping(uint256 => address) public custodians;
     mapping(bytes4 => callback) public callbacks;
 
-    function claimBounty(bytes32, address) external recordCall(msg.sig, msg.data, msg.sender) {}
+    function burnBounty(uint256, address) external recordCall(msg.sig, msg.data, msg.sender) {}
 
     function registerBounty(uint256 tokenId, address registrar)
         external

@@ -25,7 +25,7 @@ contract ERC20BountyAdapter is BountyAdapterBase {
         return bountyId;
     }
 
-    function claimBounty(uint256 bountyId, address recipient) external {
+    function burnBounty(uint256 bountyId, address recipient) external {
         ERC20Bounty storage bounty = bounties[bountyId];
 
         require(msg.sender == ownerOf(bountyId), "only custodian can claim bounty");

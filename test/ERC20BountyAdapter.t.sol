@@ -48,7 +48,7 @@ contract ERC20BountyAdapterTest is BountyAdapterTestBase {
         // act
         address recipient = address(10);
         vm.prank(custodian);
-        adapter.claimBounty(tokenId, recipient);
+        adapter.burnBounty(tokenId, recipient);
         assertEq(100, testToken.balanceOf(recipient));
     }
 
@@ -64,7 +64,7 @@ contract ERC20BountyAdapterTest is BountyAdapterTestBase {
 
         vm.startPrank(address(2));
         vm.expectRevert("only custodian can claim bounty");
-        adapter.claimBounty(tokenId, recipient);
+        adapter.burnBounty(tokenId, recipient);
     }
 
     function testGetBountyCustodian_ExistingBounty_ReturnsCustodian() public override {
