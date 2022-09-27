@@ -16,19 +16,19 @@ contract ScheduledFunctionCallDirectory is ERC721Holder {
 
     //ToDo: pack this
     struct ScheduledCall {
+        uint128 timestamp;
+        uint128 expires;
         bytes arguments;
         address target;
-        uint256 timestamp;
         uint256 value;
-        uint256 expires;
         address bountyAddress;
         uint256 bountyId;
         address owner;
     }
 
     event CallScheduled(
-        uint256 indexed timestamp,
-        uint256 indexed expires,
+        uint128 indexed timestamp,
+        uint128 indexed expires,
         uint256 id,
         bytes args,
         address bountyAddress,
@@ -37,10 +37,10 @@ contract ScheduledFunctionCallDirectory is ERC721Holder {
 
     function scheduleCall(
         address target,
-        uint256 timestamp,
+        uint128 timestamp,
         uint256 value,
         bytes calldata args,
-        uint256 expires,
+        uint128 expires,
         address owner,
         address bountyAddress,
         uint256 bountyId
