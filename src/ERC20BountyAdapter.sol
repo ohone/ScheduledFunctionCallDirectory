@@ -15,13 +15,11 @@ contract ERC20BountyAdapter is BountyAdapterBase {
     mapping(uint256 => ERC20Bounty) private bounties;
 
     function supplyBounty(address token, address from, uint256 amount, address custodian) external returns (uint256) {
-        IERC20(token).transferFrom(from, address(this), amount);
-
         uint256 bountyId = getNewBountyId();
         bounties[bountyId] = ERC20Bounty(token, amount);
-
         _mint(custodian, bountyId);
 
+        IERC20(token).transferFrom(from, address(this), amount);
         return bountyId;
     }
 

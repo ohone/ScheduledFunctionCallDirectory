@@ -20,12 +20,11 @@ contract ERC1155BountyAdapter is BountyAdapterBase, IERC1155Receiver {
         external
         returns (uint256)
     {
-        IERC1155(token).safeTransferFrom(from, address(this), id, amount, "");
-
         uint256 bountyId = getNewBountyId();
         bounties[bountyId] = ERC1155Bounty(token, id, amount);
         _mint(custodian, bountyId);
 
+        IERC1155(token).safeTransferFrom(from, address(this), id, amount, "");
         return bountyId;
     }
 

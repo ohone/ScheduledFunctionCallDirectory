@@ -16,13 +16,11 @@ contract ERC721BountyAdapter is BountyAdapterBase, IERC721Receiver {
     mapping(uint256 => ERC721Bounty) private bounties;
 
     function supplyBounty(address token, address from, uint256 id, address custodian) external returns (uint256) {
-        IERC721(token).safeTransferFrom(from, address(this), id);
-
         uint256 bountyId = getNewBountyId();
-
         bounties[bountyId] = ERC721Bounty(token, id);
         _mint(custodian, bountyId);
 
+        IERC721(token).safeTransferFrom(from, address(this), id);
         return bountyId;
     }
 
