@@ -11,8 +11,8 @@ import "./utils/TestERC721.sol";
 
 contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
     ScheduledFunctionCallDirectory private directory;
-    address erc721reciever;
-    TestERC721 bountyContract;
+    address private erc721reciever;
+    TestERC721 private bountyContract;
 
     event Called(uint256 argument1, uint256 argument2);
     event CallScheduled(
@@ -31,7 +31,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         bountyContract = new TestERC721("a","a");
     }
 
-    function testSchedulingCall_IncrementsNumber() public {
+    function testScheduleCall_IncrementsNumber() public {
         uint256 methodValue = 1;
         uint256 bountyId = uint256(1);
         bountyContract.mint(address(this), bountyId);
@@ -65,7 +65,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         assertEq(firstCall + 1, secondCall);
     }
 
-    function testSchedulingCall_TransfersEther() public {
+    function testScheduleCall_TransfersEther() public {
         uint256 methodValue = 1;
         uint256 bountyId = uint256(1);
         bountyContract.mint(address(this), bountyId);
@@ -85,7 +85,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         assertEq(address(directory).balance, methodValue);
     }
 
-    function testSchedulingCall_SendsMoreEtherThanRequired_Reverts() public {
+    function testScheduleCall_SendsMoreEtherThanRequired_Reverts() public {
         uint256 methodValue = 1;
         address bountyAddress = address(1337);
         uint256 bountyId = 1337;
@@ -102,7 +102,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         );
     }
 
-    function testSchedulingCall_SendsLessEtherThanRequired_Reverts() public {
+    function testScheduleCall_SendsLessEtherThanRequired_Reverts() public {
         uint256 methodValue = 1;
         address bountyAddress = address(1337);
         uint256 bountyId = 1337;
@@ -119,7 +119,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         );
     }
 
-    function testSchedulingCall_EmitsEvent(uint256 expires) public {
+    function testScheduleCall_EmitsEvent(uint256 expires) public {
         vm.assume(expires > 0);
         uint256 bountyId = uint256(1);
         bountyContract.mint(address(this), bountyId);
@@ -136,7 +136,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         );
     }
 
-    function testScheduledCall_CalledBeforeScheduledTime_Reverts(uint256 scheduled) public {
+    function testPopCall_CalledBeforeScheduled_Reverts(uint256 scheduled) public {
         vm.assume(scheduled > 0);
 
         uint256 methodValue = 1;
@@ -164,7 +164,37 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         directory.PopCall(functionId, recipient);
     }
 
-    function testScheduledCall_CalledAtScheduledTime_CallsMethodWithArgs(uint256 scheduled) public {
+    function testPopCall_CallExpired_Reverts() public {
+        AuditableContract target = new AuditableContract(false);
+
+        uint256 methodValue = 1;
+        address recipient = address(1);
+        uint256 currentTimestamp = 10000;
+        uint256 expiry = currentTimestamp + 1;
+        uint256 bountyId = uint256(1);
+        bountyContract.mint(address(this), bountyId);
+        bountyContract.setApprovalForAll(address(directory), true);
+        address bountyAddress = address(bountyContract);
+        vm.warp(currentTimestamp);
+
+        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
+            address(target),
+            1,
+            methodValue,
+            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
+            expiry,
+            address(this),
+            bountyAddress,
+            bountyId
+        );
+
+        vm.warp(expiry + 1);
+
+        vm.expectRevert("Call has expired.");
+        directory.PopCall(scheduledFunctionId, recipient);
+    }
+
+    function testPopCall_CalledAtScheduledTime_CallsMethodWithArgs(uint256 scheduled) public {
         vm.assume(scheduled > 0);
 
         uint256 methodValue = 1;
@@ -194,7 +224,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         directory.PopCall(scheduledCallId, recipient);
     }
 
-    function testScheduledCall_CalledAtScheduledTime_CallsMethodWithValue(uint256 scheduled) public {
+    function testPopCall_CalledAtScheduledTime_CallsMethodWithValue(uint256 scheduled) public {
         vm.assume(scheduled > 0);
 
         uint256 methodValue = 1;
@@ -226,7 +256,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         assertEq(address(target).balance, methodValue);
     }
 
-    function testScheduledCall_CalledSuccessfully_TransfersBountyToCaller(uint256 scheduled) public {
+    function testPopCall_Success_TransfersBountyToRecipient(uint256 scheduled) public {
         AuditableContract target = new AuditableContract(false);
 
         uint256 methodValue = 1;
@@ -254,7 +284,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         assertEq(recipient, bountyContract.ownerOf(bountyId));
     }
 
-    function testScheduledCall_CalledAtScheduledTime_CalledMethodReverts_Reverts() public {
+    function testPopCall_AtScheduledTime_CalledMethodReverts_Reverts() public {
         AuditableContract target = new AuditableContract(true);
 
         uint256 methodValue = 1;
@@ -280,7 +310,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         directory.PopCall(scheduledCallId, erc721reciever);
     }
 
-    function testSchedulingCall_ExpiryInThePast_Reverts() public {
+    function testScheduleCall_ExpiryInThePast_Reverts() public {
         AuditableContract target = new AuditableContract(false);
 
         uint256 methodValue = 1;
@@ -304,37 +334,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         );
     }
 
-    function testScheduledCall_CalledPassedExpiry_Reverts() public {
-        AuditableContract target = new AuditableContract(false);
-
-        uint256 methodValue = 1;
-        address recipient = address(1);
-        uint256 currentTimestamp = 10000;
-        uint256 expiry = currentTimestamp + 1;
-        uint256 bountyId = uint256(1);
-        bountyContract.mint(address(this), bountyId);
-        bountyContract.setApprovalForAll(address(directory), true);
-        address bountyAddress = address(bountyContract);
-        vm.warp(currentTimestamp);
-
-        uint256 scheduledFunctionId = directory.scheduleCall{value: methodValue}(
-            address(target),
-            1,
-            methodValue,
-            abi.encodeWithSignature("payableFunction(uint256,uint256)", 1, 2),
-            expiry,
-            address(this),
-            bountyAddress,
-            bountyId
-        );
-
-        vm.warp(expiry + 1);
-
-        vm.expectRevert("Call has expired.");
-        directory.PopCall(scheduledFunctionId, recipient);
-    }
-
-    function testScheduledCall_CalledBeforeExpiry_Succeeds() public {
+    function tesPopCall_BeforeExpiry_Succeeds() public {
         address recipient = address(1);
         uint256 methodValue = 1;
         uint256 currentTimestamp = 10000;
@@ -362,7 +362,7 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         directory.PopCall(scheduledFunctionId, payable(address(recipient)));
     }
 
-    function testPopSameCallTwice_Reverts(uint256 scheduled) public {
+    function testPopCall_CalledTwice_Reverts(uint256 scheduled) public {
         vm.assume(scheduled > 0);
 
         AuditableContract target = new AuditableContract(false);
@@ -391,4 +391,12 @@ contract ScheduledFunctionCallDirectoryTest is Test, ERC721Holder {
         vm.expectRevert("Call has expired.");
         directory.PopCall(scheduledFunctionId, erc721reciever);
     }
+
+    // refundschedule_notowner_reverts
+    // refundschedule_invalidschedule_reverts
+    // refundschedule_duplicatecallreverts
+    // refundschedule_transfersbounty_torecipient
+    // refundschedule_expiredschedule_transfersbounty
+    // refundschedule_activeschedule_transfersbounty
+    // refundschedule_beforeschedule_transfersbounty
 }
